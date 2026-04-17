@@ -212,47 +212,70 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="metrics-sidebar absolute inset-0 z-30 flex items-center px-24 pointer-events-none opacity-0">
+        <div className="metrics-sidebar absolute inset-0 z-[35] isolate flex items-center px-6 sm:px-12 md:px-24 pointer-events-none opacity-0">
           <div className="max-w-xl pointer-events-auto">
-            <div className="mb-12">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-2 h-2 rounded-full bg-[#FF6B00]" />
-                <span className="text-[10px] font-bold tracking-[0.3em] uppercase opacity-60">TECHNICAL SPECIFICATIONS</span>
-              </div>
-              <h2 className="text-7xl font-bold uppercase tracking-tighter leading-[0.9] text-white italic md:text-7xl text-5xl">ELITE PERFORMANCE</h2>
-            </div>
-            <div className="flex flex-col gap-10">
-              {metrics.map((item, i) => (
-                <div key={i} className="metric-item">
-                  <div className="flex items-baseline gap-4 mb-1">
-                    <span className="text-5xl font-bold text-white font-sans md:text-5xl text-4xl">{item.value}</span>
-                    <span className="text-[10px] tracking-[0.4em] font-medium text-white/40 uppercase md:text-[10px] text-[9px]">{item.label}</span>
+            <div className="relative rounded-2xl border border-white/[0.12] bg-black/80 px-6 py-8 shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_24px_80px_rgba(0,0,0,0.75)] backdrop-blur-md md:px-10 md:py-10">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-black/90 via-black/70 to-transparent pointer-events-none" aria-hidden />
+              <div className="relative">
+                <div className="mb-10 md:mb-12">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-2 h-2 shrink-0 rounded-full bg-[#FF6B00]" />
+                    <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/85">TECHNICAL SPECIFICATIONS</span>
                   </div>
-                  <p className="text-[11px] text-white/30 tracking-tight max-w-sm md:text-[11px] text-[10px]">{item.detail}</p>
-                  <div className="mt-4 w-12 h-[1px] bg-white/10" />
+                  <h2 className="text-5xl font-bold uppercase tracking-tighter leading-[0.9] text-white italic [text-shadow:0_2px_24px_rgba(0,0,0,0.85)] md:text-7xl">
+                    ELITE PERFORMANCE
+                  </h2>
                 </div>
-              ))}
+                <div className="flex flex-col gap-8 md:gap-10">
+                  {metrics.map((item, i) => (
+                    <div key={i} className="metric-item">
+                      <div className="mb-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                        <span className="text-4xl font-bold text-white [text-shadow:0_1px_18px_rgba(0,0,0,0.9)] font-sans md:text-5xl">
+                          {item.value}
+                        </span>
+                        <span className="text-[9px] font-medium uppercase tracking-[0.4em] text-white/80 md:text-[10px]">
+                          {item.label}
+                        </span>
+                      </div>
+                      <p className="max-w-sm text-[10px] leading-relaxed tracking-tight text-white/70 md:text-[11px]">
+                        {item.detail}
+                      </p>
+                      <div className="mt-4 h-px w-12 bg-white/20" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="urban-sidebar absolute inset-0 z-30 flex items-center justify-start px-24 pointer-events-none opacity-0">
-          <div className="max-w-xl pointer-events-auto text-left flex flex-col items-start">
-            <div className="urban-text-stagger mb-2">
-              <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-[#FF6B00]">CITY AGILITY</span>
-            </div>
-            <h2 className="urban-text-stagger text-8xl font-black uppercase tracking-tighter leading-[0.85] text-white mb-8">
-              CONQUER<br />THE CITY
-            </h2>
-            <p className="urban-text-stagger text-[13px] leading-relaxed text-white/50 max-w-lg mb-12">
-              Conquer the city with the ETX – agile, swift, and compact. Easily maneuver through crowded streets, 
-              enjoying quick acceleration and nimble handling. Experience the thrill of swift acceleration and 
-              responsive handling, leaving traffic behind. ETX: your ticket to urban liberation.
-            </p>
-            <div className="urban-text-stagger">
-              <button className="px-10 py-4 border border-white/20 text-[10px] tracking-[0.4em] uppercase hover:bg-white hover:text-black transition-colors duration-500 cursor-pointer">
-                Explore Maneuverability
-              </button>
+        <div className="urban-sidebar absolute inset-0 z-[35] isolate flex items-center justify-start px-6 sm:px-12 md:px-24 pointer-events-none opacity-0">
+          <div className="max-w-xl pointer-events-auto text-left">
+            <div className="relative rounded-2xl border border-white/[0.12] bg-black/80 px-6 py-8 shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_24px_80px_rgba(0,0,0,0.75)] backdrop-blur-md md:px-10 md:py-10">
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-black/90 via-black/70 to-transparent" aria-hidden />
+              <div className="relative flex flex-col items-start">
+                <div className="urban-text-stagger mb-2">
+                  <span className="text-[10px] font-bold tracking-[0.4em] uppercase text-[#FF6B00]">CITY AGILITY</span>
+                </div>
+                <h2 className="urban-text-stagger mb-6 text-5xl font-black uppercase leading-[0.88] tracking-tighter text-white [text-shadow:0_2px_28px_rgba(0,0,0,0.9)] sm:text-7xl md:mb-8 md:text-8xl">
+                  CONQUER
+                  <br />
+                  THE CITY
+                </h2>
+                <p className="urban-text-stagger mb-8 max-w-lg text-[12px] leading-relaxed text-white/70 md:mb-12 md:text-[13px]">
+                  Conquer the city with the ETX – agile, swift, and compact. Easily maneuver through crowded streets,
+                  enjoying quick acceleration and nimble handling. Experience the thrill of swift acceleration and
+                  responsive handling, leaving traffic behind. ETX: your ticket to urban liberation.
+                </p>
+                <div className="urban-text-stagger">
+                  <button
+                    type="button"
+                    className="border border-white/25 px-8 py-3 text-[10px] uppercase tracking-[0.4em] transition-colors duration-500 hover:bg-white hover:text-black md:px-10 md:py-4"
+                  >
+                    Explore Maneuverability
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

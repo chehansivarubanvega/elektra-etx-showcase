@@ -116,13 +116,13 @@ const DesignEngineering = () => {
   return (
     <section 
       ref={containerRef} 
-      className="relative w-full bg-[#000000] text-white flex flex-col md:flex-row items-start border-t border-white/10"
+      className="relative w-full bg-[#000000] text-white flex flex-col md:flex-row items-stretch border-t border-white/10"
       id="design-engineering"
     >
-      {/* LEFT SIDE: STICKY CANVAS RENDER ENGINE */}
-      <div className="w-full md:w-1/2 h-[50vh] md:h-screen sticky top-0 flex items-center justify-center p-6 md:p-12 lg:p-24 border-b md:border-b-0 md:border-r border-white/10 z-0 bg-black">
+      {/* LEFT SIDE: STICKY CANVAS — higher z-index on mobile so scrolling copy does not paint over the sequence */}
+      <div className="sticky top-0 z-30 flex h-[50vh] max-h-[560px] min-h-[300px] w-full shrink-0 items-center justify-center border-b border-white/10 bg-black p-4 sm:h-[48vh] sm:min-h-[320px] sm:p-6 md:z-0 md:h-screen md:max-h-none md:min-h-0 md:w-1/2 md:border-b-0 md:border-r md:p-10 lg:p-16 xl:p-20">
         {/* High-Tech HUD Blueprint Frame */}
-        <div className="relative w-full h-full max-h-[60vh] md:max-h-[70vh] flex items-center justify-center group">
+        <div className="group relative flex h-full min-h-[240px] w-full max-h-full items-center justify-center md:max-h-[70vh]">
           {/* Corner Accents */}
           <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-white/30" />
           <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-white/30" />
@@ -138,7 +138,7 @@ const DesignEngineering = () => {
 
           <canvas
             ref={canvasRef}
-            className="w-full h-full object-contain relative z-20"
+            className="relative z-20 block h-full min-h-[200px] w-full max-h-full object-contain"
           />
           
           {!imagesLoaded && (
@@ -153,58 +153,66 @@ const DesignEngineering = () => {
       </div>
 
       {/* RIGHT SIDE: NATURALLY SCROLLING CONTENT MODULES */}
-      <div className="w-full md:w-1/2 flex flex-col z-10 bg-black/0 md:bg-transparent">
-        
-        {/* Block 1: Exterior */}
-        <div className="min-h-screen w-full flex flex-col justify-center px-8 md:px-16 lg:px-24 py-16 md:py-24">
-          <div className="w-full max-w-xl">
-            <div className="flex items-center gap-3 mb-4 md:mb-6">
-              <div className="w-2 h-2 bg-[#FF6B00]" />
-              <span className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] uppercase text-[#FF6B00]">STAGE 01. EXTERIOR</span>
-            </div>
-            <h2 className="text-[clamp(2.5rem,6vw,5rem)] font-black mb-4 md:mb-8 tracking-tighter uppercase leading-[0.9] break-words">
-              A NEW<br />SILHOUETTE
-            </h2>
-            <p className="text-[12px] md:text-[13px] text-white/50 leading-relaxed font-light mb-6 md:mb-8 max-w-sm">
-              ETX sets a new style standard in urban mobility. Its unique design boldly stands out on city streets, symbolizing electric confidence. Crafted with elegance, every detail exudes dynamism, from sleek lines to captivating DRLs. Beyond looks, ETX represents sustainable elegance, redefining urban driving.
-            </p>
-            <div className="w-12 h-[1px] bg-white/20" />
+      <div className="relative z-0 flex min-w-0 w-full flex-col bg-black md:w-1/2 md:bg-transparent">
+        {/* Shared: fluid display size, balance lines, no mid-word breaks from break-words */}
+        {(
+          [
+            {
+              stage: 'STAGE 01. EXTERIOR',
+              title: (
+                <>
+                  <span className="block">A NEW</span>
+                  <span className="block">SILHOUETTE</span>
+                </>
+              ),
+              body:
+                'ETX sets a new style standard in urban mobility. Its unique design boldly stands out on city streets, symbolizing electric confidence. Crafted with elegance, every detail exudes dynamism, from sleek lines to captivating DRLs. Beyond looks, ETX represents sustainable elegance, redefining urban driving.',
+            },
+            {
+              stage: 'STAGE 02. INTERIOR',
+              title: (
+                <>
+                  <span className="block md:inline">STYLE MEETS </span>
+                  <span className="block md:inline">PRACTICALITY</span>
+                </>
+              ),
+              body:
+                "Glide through the city with ease, indulging in luxurious interiors crafted for passenger satisfaction. Enjoy ergonomic design, connectivity, and safety features for a superior driving experience. Redefine urban travel with ETX's blend of style and convenience.",
+            },
+            {
+              stage: 'STAGE 03. POWERTRAIN',
+              title: (
+                <>
+                  <span className="block lg:inline">INNOVATION </span>
+                  <span className="block lg:inline">IN MOTION</span>
+                </>
+              ),
+              body:
+                'Introducing the cutting-edge Powertrain of ETX, designed by experts for outstanding performance. Built to endure diverse terrains, and rigorously tested, ETX ensures reliability without compromising power.',
+            },
+          ] as const
+        ).map((block) => (
+          <div
+            key={block.stage}
+            className="flex min-h-[min(100dvh,920px)] w-full flex-col justify-center px-5 py-14 sm:px-8 sm:py-16 md:min-h-screen md:px-10 md:py-20 lg:px-14 lg:py-24 xl:px-20"
+          >
+            <article className="w-full max-w-[min(100%,36rem)] lg:max-w-[min(100%,40rem)]">
+              <div className="mb-4 flex items-center gap-3 md:mb-6">
+                <div className="h-2 w-2 shrink-0 bg-[#FF6B00]" />
+                <span className="text-[9px] font-bold uppercase tracking-[0.35em] text-[#FF6B00] sm:text-[10px] sm:tracking-[0.4em]">
+                  {block.stage}
+                </span>
+              </div>
+              <h2 className="mb-5 text-[clamp(1.875rem,calc(0.75rem+5.5vw),3.75rem)] font-black uppercase leading-[1.02] tracking-[-0.02em] text-white text-balance antialiased [hyphens:none] md:mb-8 md:text-[clamp(2.125rem,calc(0.5rem+4.2vw),4.25rem)] md:leading-[1.05]">
+                {block.title}
+              </h2>
+              <p className="mb-6 max-w-prose text-[13px] font-normal leading-[1.7] text-white/72 antialiased sm:text-[14px] md:mb-8 md:text-[15px] md:leading-[1.75]">
+                {block.body}
+              </p>
+              <div className="h-px w-12 bg-white/25" aria-hidden />
+            </article>
           </div>
-        </div>
-
-        {/* Block 2: Interior */}
-        <div className="min-h-screen w-full flex flex-col justify-center px-8 md:px-16 lg:px-24 py-16 md:py-24">
-          <div className="w-full max-w-xl">
-            <div className="flex items-center gap-3 mb-4 md:mb-6">
-              <div className="w-2 h-2 bg-[#FF6B00]" />
-              <span className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] uppercase text-[#FF6B00]">STAGE 02. INTERIOR</span>
-            </div>
-            <h2 className="text-[clamp(2.5rem,6vw,5rem)] font-black mb-4 md:mb-8 tracking-tighter uppercase leading-[0.9] break-words">
-              STYLE MEETS<br />PRACTICALITY
-            </h2>
-            <p className="text-[12px] md:text-[13px] text-white/50 leading-relaxed font-light mb-6 md:mb-8 max-w-sm">
-              Glide through the city with ease, indulging in luxurious interiors crafted for passenger satisfaction. Enjoy ergonomic design, connectivity, and safety features for a superior driving experience. Redefine urban travel with ETX&apos;s blend of style and convenience.
-            </p>
-            <div className="w-12 h-[1px] bg-white/20" />
-          </div>
-        </div>
-
-        {/* Block 3: Powertrain */}
-        <div className="min-h-screen w-full flex flex-col justify-center px-8 md:px-16 lg:px-24 py-16 md:py-24">
-          <div className="w-full max-w-xl">
-            <div className="flex items-center gap-3 mb-4 md:mb-6">
-              <div className="w-2 h-2 bg-[#FF6B00]" />
-              <span className="text-[9px] md:text-[10px] font-bold tracking-[0.4em] uppercase text-[#FF6B00]">STAGE 03. POWERTRAIN</span>
-            </div>
-            <h2 className="text-[clamp(2.5rem,6vw,5rem)] font-black mb-4 md:mb-8 tracking-tighter uppercase leading-[0.9] break-words">
-              INNOVATION<br />IN MOTION
-            </h2>
-            <p className="text-[12px] md:text-[13px] text-white/50 leading-relaxed font-light mb-6 md:mb-8 max-w-sm">
-              Introducing the cutting-edge Powertrain of ETX, designed by experts for outstanding performance. Built to endure diverse terrains, and rigorously tested, ETX ensures reliability without compromising power.
-            </p>
-            <div className="w-12 h-[1px] bg-white/20" />
-          </div>
-        </div>
+        ))}
 
       </div>
     </section>

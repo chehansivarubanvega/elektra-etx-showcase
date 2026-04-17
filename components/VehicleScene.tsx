@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useRef, useMemo } from "react";
+import { useFrame } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
+import * as THREE from "three";
 
-const MODEL_PATH = '/models/etx-exterior-panels.glb';
+const MODEL_PATH = "/models/etx-exterior-panels.glb";
 const BASE_Y_ROTATION = Math.PI;
 
 export const VehicleModel = React.forwardRef<THREE.Group, any>((props, ref) => {
@@ -56,25 +56,35 @@ export const VehicleModel = React.forwardRef<THREE.Group, any>((props, ref) => {
     </group>
   );
 });
-VehicleModel.displayName = 'VehicleModel';
+VehicleModel.displayName = "VehicleModel";
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   useGLTF.preload(MODEL_PATH);
 }
 
-export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObject<{ hero: number, metrics: number, urban: number, charging: number, daylight: number }> }) => {
+export const VehicleScene = ({
+  scrollData,
+}: {
+  scrollData: React.MutableRefObject<{
+    hero: number;
+    metrics: number;
+    urban: number;
+    charging: number;
+    daylight: number;
+  }>;
+}) => {
   const groupRef = useRef<THREE.Group>(null);
   const vehicleRef = useRef<THREE.Group>(null);
-  
+
   // Internal state for smoothed values
   const smoothed = useRef({
     x: 0,
     y: 0,
     z: 0,
     scale: 0.6,
-    rotationY: BASE_Y_ROTATION - (Math.PI * 0.15),
+    rotationY: BASE_Y_ROTATION - Math.PI * 0.15,
     tilt: 0,
-    opacity: 1
+    opacity: 1,
   });
 
   useFrame((_state, delta) => {
@@ -86,12 +96,13 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     const isMobile = window.innerWidth < 768;
     const mobileScaleFactor = isMobile ? 0.6 : 1;
 
-    const heroScale = (0.75 + (hero * 0.85)) * mobileScaleFactor;
-    const metricsScale = (1.6 + (metrics * 1.15)) * mobileScaleFactor;
-    const urbanScale = (1.8 - (urban * 0.4)) * mobileScaleFactor;
+    const heroScale = (0.75 + hero * 0.85) * mobileScaleFactor;
+    // Elite Performance (metrics): shrink and rotate clockwise (decreasing rotation.y); z matches urban handoff
+    const metricsScale = (1.6 - metrics * 1.28) * mobileScaleFactor;
+    const urbanScale = (1.8 - urban * 0.4) * mobileScaleFactor;
     const chargingScale = 1.25 * mobileScaleFactor;
     const daylightScale = 1.2 * mobileScaleFactor;
-    
+
     let targetScale = heroScale;
     if (metrics > 0) targetScale = metricsScale;
     if (urban > 0) targetScale = urbanScale;
@@ -99,8 +110,9 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     if (daylight > 0) targetScale = daylightScale;
 
     // 2. Target Positions
-    const metricsX = metrics * 14; // Hero -> Metrics (Drive Right)
-    const urbanX = 14 - (urban * 18); // Metrics -> Urban
+    // Bias right so the model clears the Elite Performance copy (still ends ~14 for urban handoff)
+    const metricsX = 5 + metrics * 9;
+    const urbanX = 14 - urban * 18; // Metrics -> Urban
     // Transition drive-by: enter from left → hold in scene → exit right
     let chargingX: number;
     if (charging < 0.35) {
@@ -117,19 +129,19 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
       const ease = t * t; // quadratic ease-in for acceleration feel
       chargingX = 3 + ease * 26; // 3 → 29 (exit right)
     }
-    const daylightX = -35 + (daylight * 70); // Enter from Left (-35) -> Drive to Right (35)
-    
-    let targetX = metricsX;
+    const daylightX = -35 + daylight * 70; // Enter from Left (-35) -> Drive to Right (35)
+
+    let targetX = 0;
     if (metrics > 0) targetX = metricsX;
     if (urban > 0) targetX = urbanX;
     if (charging > 0) targetX = chargingX;
     if (daylight > 0) targetX = daylightX;
-    
+
     // Smooth Y dip
     const targetY = charging > 0 || daylight > 0 ? 0 : 0;
     const heroZ = hero * 2.5; // Push towards camera
-    const metricsZ = 2.5 + (metrics * 4.5); // Come further forward while growing
-    const urbanZ = 7 - (urban * 5.5); // Pull back during urban transition
+    const metricsZ = 2.5 + metrics * 4.5; // Match urban entry z at metrics=1 (urban uses z from 7)
+    const urbanZ = 7 - urban * 5.5; // Pull back during urban transition
     const chargingZ = 1.2;
     const daylightZ = 0;
 
@@ -140,14 +152,14 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     if (daylight > 0) targetZ = daylightZ;
 
     // 3. Target Rotations & Tilt
-    const initialRotation = BASE_Y_ROTATION - (Math.PI * 0.15);
-    const heroRotationY = (hero * Math.PI * 0.5) + initialRotation;
-    const metricsRotationY = heroRotationY + (metrics * Math.PI * 1.5);
-    const urbanRotationY = BASE_Y_ROTATION - (Math.PI * 0.5); // Turn another 90deg clockwise in urban section
+    const initialRotation = BASE_Y_ROTATION - Math.PI * 0.15;
+    const heroRotationY = hero * Math.PI * 0.5 + initialRotation;
+    const metricsRotationY = heroRotationY - metrics * (Math.PI / 4);
+    const urbanRotationY = BASE_Y_ROTATION - Math.PI * 0.5; // Fixed heading for urban section
     const chargingRotationY = BASE_Y_ROTATION; // Fixed 180deg heading for straight drive
     // In daylight drive-by, the side profile should be prominent (90 degree rotation)
-    const daylightRotationY = BASE_Y_ROTATION + (Math.PI * 0.5); 
-    
+    const daylightRotationY = BASE_Y_ROTATION + Math.PI * 0.5;
+
     let targetRotationY = heroRotationY;
     if (metrics > 0) targetRotationY = metricsRotationY;
     if (urban > 0) targetRotationY = urbanRotationY;
@@ -155,25 +167,59 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     if (daylight > 0) targetRotationY = daylightRotationY;
 
     // Lean into the urban section
-    const targetTilt = charging > 0 ? 0 : (urban > 0 && urban < 1 ? Math.sin(urban * Math.PI) * -0.06 : 0);
-    
+    const targetTilt =
+      charging > 0
+        ? 0
+        : urban > 0 && urban < 1
+          ? Math.sin(urban * Math.PI) * -0.06
+          : 0;
+
     // Opacity management
     let targetOpacity = 1;
     // Charging transition: stay fully visible; fade only as it exits off-screen right
-    if (charging > 0.82) targetOpacity = Math.max(0, 1 - ((charging - 0.82) / 0.18));
+    if (charging > 0.82)
+      targetOpacity = Math.max(0, 1 - (charging - 0.82) / 0.18);
     if (daylight > 0) targetOpacity = 1;
-    if (daylight > 0.9) targetOpacity = Math.max(0, 1 - ((daylight - 0.9) * 10));
+    if (daylight > 0.9) targetOpacity = Math.max(0, 1 - (daylight - 0.9) * 10);
 
     // 4. Apply Smoothing (Lerp)
-    const lerpFactor = 1 - Math.exp(-10 * delta); 
-    
-    smoothed.current.x = THREE.MathUtils.lerp(smoothed.current.x, targetX, lerpFactor);
-    smoothed.current.y = THREE.MathUtils.lerp(smoothed.current.y, targetY, lerpFactor);
-    smoothed.current.z = THREE.MathUtils.lerp(smoothed.current.z, targetZ, lerpFactor);
-    smoothed.current.scale = THREE.MathUtils.lerp(smoothed.current.scale, targetScale, lerpFactor);
-    smoothed.current.rotationY = THREE.MathUtils.lerp(smoothed.current.rotationY, targetRotationY, lerpFactor);
-    smoothed.current.tilt = THREE.MathUtils.lerp(smoothed.current.tilt, targetTilt, lerpFactor);
-    smoothed.current.opacity = THREE.MathUtils.lerp(smoothed.current.opacity, targetOpacity, lerpFactor);
+    const lerpFactor = 1 - Math.exp(-10 * delta);
+
+    smoothed.current.x = THREE.MathUtils.lerp(
+      smoothed.current.x,
+      targetX,
+      lerpFactor,
+    );
+    smoothed.current.y = THREE.MathUtils.lerp(
+      smoothed.current.y,
+      targetY,
+      lerpFactor,
+    );
+    smoothed.current.z = THREE.MathUtils.lerp(
+      smoothed.current.z,
+      targetZ,
+      lerpFactor,
+    );
+    smoothed.current.scale = THREE.MathUtils.lerp(
+      smoothed.current.scale,
+      targetScale,
+      lerpFactor,
+    );
+    smoothed.current.rotationY = THREE.MathUtils.lerp(
+      smoothed.current.rotationY,
+      targetRotationY,
+      lerpFactor,
+    );
+    smoothed.current.tilt = THREE.MathUtils.lerp(
+      smoothed.current.tilt,
+      targetTilt,
+      lerpFactor,
+    );
+    smoothed.current.opacity = THREE.MathUtils.lerp(
+      smoothed.current.opacity,
+      targetOpacity,
+      lerpFactor,
+    );
 
     // 5. Apply to Refs
     groupRef.current.position.x = smoothed.current.x;
@@ -182,7 +228,7 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     vehicleRef.current.scale.setScalar(smoothed.current.scale);
     vehicleRef.current.rotation.y = smoothed.current.rotationY;
     vehicleRef.current.rotation.z = smoothed.current.tilt;
-    
+
     // Update mesh opacity directly across all internal materials
     if (vehicleRef.current) {
       vehicleRef.current.traverse((child) => {
