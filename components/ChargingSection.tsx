@@ -7,7 +7,7 @@ export const ChargingSection = () => {
   return (
     <div className="charging-sidebar absolute inset-0 z-30 flex flex-col md:flex-row items-center justify-between px-8 md:px-24 pointer-events-none opacity-0">
       {/* Metrics Stack (Left - Stacked on Mobile) */}
-      <div className="flex flex-row md:flex-col gap-6 md:gap-16 items-center md:items-start justify-center pt-24 md:pt-0 w-full md:w-auto">
+      <div className="flex w-full max-w-full flex-col items-center justify-center gap-8 pt-24 max-md:px-2 md:flex-col md:items-start md:gap-16 md:pt-0 md:w-auto">
         <div className="metric-charging-item scale-75 md:scale-100 origin-center md:origin-left">
           <div className="flex items-baseline gap-2 md:gap-4">
             <span className="text-4xl md:text-6xl font-bold font-sans">6</span>

@@ -160,13 +160,13 @@ export default function Home() {
   ];
 
   return (
-    <main className="relative bg-[#000000] text-white min-h-[1400vh]">
+    <main className="relative min-w-0 max-w-full overflow-x-clip bg-[#000000] text-white min-h-[1400vh]">
       <Loader />
       <Navbar />
 
       <div className="fixed inset-4 orange-frame grid-overlay pointer-events-none z-50 opacity-10" />
 
-      <section ref={containerRef} className="relative h-screen w-full overflow-hidden bg-black">
+      <section ref={containerRef} className="relative h-screen w-full min-w-0 max-w-full overflow-hidden bg-black">
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/images/sigiriya.png')" }}
@@ -180,8 +180,8 @@ export default function Home() {
         <div className="urban-bg-glow absolute inset-0 z-0 opacity-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(255,107,0,0.16)_0%,rgba(0,0,0,0)_55%)]" />
 
         {/* Background "ETX" Text */}
-        <div className="absolute inset-0 flex items-start pt-[15vh] justify-center pointer-events-none z-0">
-          <h1 className="bg-text text-[420px] font-[900] tracking-[-0.05em] leading-[1] text-white/[0.15] select-none font-sans uppercase">
+        <div className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[15vh] pointer-events-none z-0">
+          <h1 className="bg-text max-w-full text-[clamp(5.5rem,36vw,26.25rem)] font-[900] tracking-[-0.05em] leading-[1] text-white/[0.15] select-none font-sans uppercase md:text-[420px]">
             ETX
           </h1>
         </div>
@@ -209,11 +209,13 @@ export default function Home() {
         
         {/* We'll re-render them to ensure correct imports and structure */}
         <div className="hero-hud absolute inset-0 z-20 pointer-events-none">
-          <div className="absolute top-[120px] left-[80px] font-mono text-[10px] uppercase tracking-[0.15em] text-white/40">
-            Driven by Innovation
-          </div>
-          <div className="absolute top-[120px] right-[80px] font-mono text-[10px] uppercase tracking-[0.15em] text-white/40">
-            Product of Sri Lanka
+          <div className="absolute top-[96px] left-1/2 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col items-center gap-2 text-center md:contents">
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/40 md:absolute md:top-[120px] md:left-[80px] md:w-auto md:max-w-none md:text-left">
+              Driven by Innovation
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/40 md:absolute md:top-[120px] md:right-[80px] md:left-auto md:w-auto md:max-w-none md:text-right">
+              Product of Sri Lanka
+            </div>
           </div>
           <div className="absolute bottom-[40px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-[12px] opacity-40">
             <span className="text-[9px] tracking-[0.4em] uppercase font-sans">Scroll to explore</span>
@@ -290,7 +292,7 @@ export default function Home() {
         </div>
 
         {/* Daylight / Freedom Section */}
-        <div className="daylight-sidebar absolute inset-0 z-30 flex flex-col items-center justify-center px-32 pointer-events-none opacity-0">
+        <div className="daylight-sidebar absolute inset-0 z-30 flex flex-col items-center justify-center overflow-hidden px-5 sm:px-10 md:px-32 pointer-events-none opacity-0">
           <div className="text-center max-w-4xl pointer-events-auto">
              <div className="daylight-text-stagger mb-6">
                 <span className="text-[12px] font-bold tracking-[0.5em] uppercase text-[#FF6B00]">BEYOND LIMITS</span>

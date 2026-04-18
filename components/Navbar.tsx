@@ -21,7 +21,7 @@ export const Navbar = () => {
         scrolled: { width: 'auto', top: 24, paddingLeft: '24px', paddingRight: '24px', paddingTop: '12px', paddingBottom: '12px', borderRadius: '9999px', backgroundColor: '#111111CC' }
       }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed left-[50%] -translate-x-[50%] z-[100] flex items-center justify-between pointer-events-none backdrop-blur-sm"
+      className="fixed left-[50%] z-[100] flex max-w-full -translate-x-[50%] items-center justify-between box-border pointer-events-none backdrop-blur-sm"
     >
       {/* Brand */}
       <div className="pointer-events-auto flex items-center">

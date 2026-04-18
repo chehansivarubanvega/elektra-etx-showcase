@@ -248,16 +248,17 @@ const CargoSketchSection = () => {
       let drawH: number;
       let offX: number;
       let offY: number;
+      // Full “contain” fit — no scale-down margin (was 0.94) so frames aren’t cropped visually on mobile.
       if (imgRatio > canvasRatio) {
-        drawW = cW * 0.94;
+        drawW = cW;
         drawH = drawW / imgRatio;
-        offX = (cW - drawW) / 2;
+        offX = 0;
         offY = (cH - drawH) / 2;
       } else {
-        drawH = cH * 0.94;
+        drawH = cH;
         drawW = drawH * imgRatio;
         offX = (cW - drawW) / 2;
-        offY = (cH - drawH) / 2;
+        offY = 0;
       }
       ctx.clearRect(0, 0, cW, cH);
       ctx.drawImage(img, offX, offY, drawW, drawH);
@@ -287,7 +288,7 @@ const CargoSketchSection = () => {
     <section
       ref={sectionRef}
       id="cargo-versatility"
-      className="relative w-full bg-black text-white"
+      className="relative w-full min-w-0 max-w-full overflow-x-clip bg-black text-white"
       style={{ height: "300vh" }}
     >
       {/* The sticky stage = what the viewer actually sees during the scrub. */}
@@ -485,7 +486,7 @@ const CargoSketchSection = () => {
             Desktop: centered, 54vw × 58vh.
             Mobile: positioned below headline, 82vw × 42vh (portrait), centered horizontally. */}
         <div className="pointer-events-none absolute inset-x-0 top-[22vh] z-[10] flex justify-center md:inset-0 md:top-0 md:items-center">
-          <div className="relative w-[82vw] max-w-[420px] h-[42vh] max-h-[420px] min-w-[240px] min-h-[260px] md:w-[min(54vw,760px)] md:h-[min(58vh,520px)] md:max-w-none md:max-h-none md:min-w-[280px]">
+          <div className="relative h-[min(46dvh,440px)] w-[min(92vw,420px)] min-h-[240px] min-w-[240px] max-w-[420px] max-h-[min(46dvh,440px)] md:h-[min(58vh,520px)] md:w-[min(54vw,760px)] md:max-h-none md:min-h-[280px] md:min-w-[280px]">
             {/* Soft orange halo behind the sketch */}
             <div
               aria-hidden
@@ -497,9 +498,9 @@ const CargoSketchSection = () => {
               }}
             />
 
-            {/* Window body — clips the canvas */}
+            {/* Window body — inner padding on mobile so rounded corners don’t clip letterboxed frames */}
             <div
-              className="relative h-full w-full overflow-hidden rounded-[18px] md:rounded-[24px]"
+              className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[18px] md:rounded-[24px]"
               style={{
                 background:
                   "radial-gradient(ellipse at center, rgba(255,107,0,0.05) 0%, rgba(0,0,0,0) 70%), #000",
@@ -507,10 +508,12 @@ const CargoSketchSection = () => {
                   "0 30px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,107,0,0.14), inset 0 0 60px rgba(255,107,0,0.08)",
               }}
             >
-              <canvas
-                ref={canvasRef}
-                className="absolute inset-0 block h-full w-full"
-              />
+              <div className="relative min-h-0 min-w-0 flex-1 p-2 md:absolute md:inset-0 md:p-0">
+                <canvas
+                  ref={canvasRef}
+                  className="block h-full min-h-0 w-full min-w-0 md:absolute md:inset-0"
+                />
+              </div>
 
               {/* Inner grain scoped to the window */}
               <div

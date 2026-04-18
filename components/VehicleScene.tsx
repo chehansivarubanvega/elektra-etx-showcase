@@ -128,7 +128,7 @@ export const VehicleScene = ({
     opacity: 1,
   });
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (!groupRef.current || !vehicleRef.current) return;
 
     const { hero, metrics, urban, charging, daylight } = scrollData.current;
@@ -214,50 +214,86 @@ export const VehicleScene = ({
       daylight === 0 &&
       metrics === 0
     ) {
-      const hx = hero * hero;
-      targetX = THREE.MathUtils.lerp(-1.35, 0.12, hx);
-      targetZ = hero * 3.55;
-      targetScale = THREE.MathUtils.lerp(0.78, 1.22, hero);
+      targetX = 0;
+      const hy = hero * hero;
+      targetY = THREE.MathUtils.lerp(0.38, 0.52, hy);
+      // Stronger Z = reads as driving toward the camera through the hero scrub
+      targetZ = THREE.MathUtils.lerp(0.45, 4.35, hero);
+      targetScale = THREE.MathUtils.lerp(0.78, 1.14, hero);
       targetTilt = 0;
+      // Avoid large in-place yaw during hero on mobile (was π/2 via heroRotationY)
+      targetRotationY = initialRotation + hero * 0.2;
     }
 
     const mobileMetricsArc = isMobile && metrics > 0 && urban === 0;
     if (mobileMetricsArc) {
       const t = THREE.MathUtils.clamp(metrics, 0, 1);
-      const split = 0.44;
       const ease = (u: number) => u * u * (3 - 2 * u);
 
-      const startX = 0.12;
-      const startY = 0;
-      const startZ = 3.55;
-      const startS = 1.22;
-      const peakX = 0;
-      const peakY = 0.18;
-      const peakZ = 4.35;
-      const peakS = 1.38;
-      const endX = 9.8;
-      const endY = -4.35;
-      const endZ = 9.85;
-      const endS = 0.44;
+      // Continuity with mobile hero end (hero pegged at 1 while metrics runs)
+      const startX = 0;
+      const startY = 0.52;
+      const startZ = 4.35;
+      const startS = 1.14;
+      const startYaw = initialRotation + 0.2;
 
-      if (t < split) {
-        const u = ease(t / split);
-        targetX = THREE.MathUtils.lerp(startX, peakX, u);
-        targetY = THREE.MathUtils.lerp(startY, peakY, u);
-        targetZ = THREE.MathUtils.lerp(startZ, peakZ, u);
-        targetScale = THREE.MathUtils.lerp(startS, peakS, u);
+      // Bottom-right on screen ≈ +X, −Y in default camera space; stable 3/4 view
+      const restX = 3.85;
+      const restY = -2.75;
+      const restZ = 5.45;
+      const restS = 0.9;
+      const restYaw = BASE_Y_ROTATION - Math.PI * 0.28;
+
+      const exitX = 14.5;
+      const exitY = -3.05;
+      const exitZ = 6.85;
+      const exitS = 0.38;
+
+      const tToCorner = 0.3;
+      const tRestEnd = 0.55;
+
+      if (t < tToCorner) {
+        const u = ease(t / tToCorner);
+        targetX = THREE.MathUtils.lerp(startX, restX, u);
+        targetY = THREE.MathUtils.lerp(startY, restY, u);
+        targetZ = THREE.MathUtils.lerp(startZ, restZ, u);
+        targetScale = THREE.MathUtils.lerp(startS, restS, u);
+        targetRotationY = THREE.MathUtils.lerp(startYaw, restYaw, u);
+      } else if (t < tRestEnd) {
+        targetX = restX;
+        targetY = restY;
+        targetZ = restZ;
+        targetScale = restS;
+        targetRotationY = restYaw;
       } else {
-        const u = ease((t - split) / (1 - split));
-        targetX = THREE.MathUtils.lerp(peakX, endX, u);
-        targetY = THREE.MathUtils.lerp(peakY, endY, u);
-        targetZ = THREE.MathUtils.lerp(peakZ, endZ, u);
-        targetScale = THREE.MathUtils.lerp(peakS, endS, u);
+        const u = ease((t - tRestEnd) / (1 - tRestEnd));
+        targetX = THREE.MathUtils.lerp(restX, exitX, u);
+        targetY = THREE.MathUtils.lerp(restY, exitY, u);
+        targetZ = THREE.MathUtils.lerp(restZ, exitZ, u);
+        targetScale = THREE.MathUtils.lerp(restS, exitS, u);
+        targetRotationY = restYaw;
       }
 
       targetTilt = 0;
-      const baseShowcaseY = heroRotationY - t * (Math.PI / 4);
-      targetRotationY =
-        baseShowcaseY + state.clock.elapsedTime * (0.45 + 0.55 * t);
+
+      // Fade out as it leaves frame (urban section brings opacity back up)
+      if (t > 0.72) {
+        const u = (t - 0.72) / 0.28;
+        targetOpacity = Math.max(0, 1 - ease(u));
+      }
+    }
+
+    // Urban / "Conquer the City" on mobile: same right→left X drive, but negative
+    // world Y keeps the pass along the bottom third (positive Y was center-screen).
+    const mobileUrban =
+      isMobile && urban > 0 && charging === 0 && daylight === 0;
+    if (mobileUrban) {
+      targetX = urbanX;
+      targetY = THREE.MathUtils.lerp(-1.92, -2.55, urban);
+      targetZ = THREE.MathUtils.lerp(1.65, 1.35, urban);
+      targetScale = urbanScale;
+      targetRotationY = urbanRotationY;
+      targetTilt = 0;
     }
 
     const dt = Math.min(delta, 0.05);

@@ -76,7 +76,7 @@ const Footer = () => {
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.6 }}
-      className="relative w-full overflow-hidden border-t border-white/[0.08] bg-[#030303] text-white"
+      className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-white/[0.08] bg-[#030303] text-white"
     >
       {/* Tech grid + vignette */}
       <div
@@ -206,9 +206,9 @@ const Footer = () => {
         </div>
 
         {/* Mega wordmark */}
-        <div className="relative mt-14 border-t border-white/[0.08] pt-10 sm:mt-16 sm:pt-12">
-          <div className="flex flex-col items-stretch gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <h2 className="select-none text-[clamp(2.75rem,14vw,10rem)] font-black leading-[0.85] tracking-[-0.04em]">
+        <div className="relative mt-14 min-w-0 border-t border-white/[0.08] pt-10 sm:mt-16 sm:pt-12">
+          <div className="flex min-w-0 flex-col items-stretch gap-6 overflow-x-clip sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="max-w-full min-w-0 select-none text-[clamp(2.75rem,14vw,10rem)] font-black leading-[0.85] tracking-[-0.04em]">
               <span className="bg-gradient-to-b from-white via-white to-white/35 bg-clip-text text-transparent">
                 ELEKTRA
               </span>

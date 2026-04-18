@@ -14,8 +14,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="en" className={`${inter.variable}`}>
-      <body suppressHydrationWarning>{children}</body>
+    <html lang="en" className={`${inter.variable} overflow-x-clip`}>
+      <body className="min-w-0 overflow-x-clip" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }
