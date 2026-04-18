@@ -117,7 +117,10 @@ const Footer = () => {
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-14 lg:px-10 lg:pb-24 lg:pt-16">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+        <div
+          data-snap-anchor="footer-0"
+          className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10"
+        >
           {/* Data modules */}
           <div className="relative lg:col-span-7">
             <div className="pointer-events-none absolute -left-px -top-px h-4 w-4 border-l border-t border-white/25" />
@@ -207,7 +210,10 @@ const Footer = () => {
         </div>
 
         {/* Mega wordmark */}
-        <div className="relative mt-14 min-w-0 border-t border-white/[0.08] pt-10 sm:mt-16 sm:pt-12">
+        <div
+          data-snap-anchor="footer-1"
+          className="relative mt-14 min-w-0 border-t border-white/[0.08] pt-10 sm:mt-16 sm:pt-12"
+        >
           <div className="flex min-w-0 flex-col items-stretch gap-6 overflow-x-clip sm:flex-row sm:items-end sm:justify-between">
             <h2 className="max-w-full min-w-0 select-none text-[clamp(2.75rem,14vw,10rem)] font-black leading-[0.85] tracking-[-0.04em]">
               <span className="bg-gradient-to-b from-white via-white to-white/35 bg-clip-text text-transparent">

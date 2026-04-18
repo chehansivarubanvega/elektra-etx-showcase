@@ -104,21 +104,26 @@ export default function SnapController() {
       const rect = anchor.getBoundingClientRect();
       const absoluteTop = rect.top + window.scrollY;
       const vh = window.innerHeight;
+      const clamp = (y: number) =>
+        Math.max(0, Math.min(maxScrollY(), y));
+
       if (isMobileViewport() && stickyEl) {
-        const stickyRect = stickyEl.getBoundingClientRect();
-        const stickyH = stickyRect.height;
-        // Anchor's top edge just below the sticky column.
-        return Math.max(
-          0,
-          Math.min(
-            maxScrollY(),
-            absoluteTop - stickyH - MOBILE_STICKY_GAP_PX,
-          ),
-        );
+        const stickyH = stickyEl.getBoundingClientRect().height;
+        return clamp(absoluteTop - stickyH - MOBILE_STICKY_GAP_PX);
       }
-      // Desktop / wide viewport: center the anchor block in the viewport.
-      const centered = absoluteTop + rect.height / 2 - vh / 2;
-      return Math.max(0, Math.min(maxScrollY(), centered));
+
+      // If the anchor is taller than the viewport (common for stacked
+      // footer grids on mobile), centering would hide its top. Prefer
+      // aligning the top with a small breathing offset so the user
+      // starts reading from the beginning; they can snap forward to
+      // see the rest.
+      if (rect.height > vh) {
+        const topOffset = Math.max(24, Math.round(vh * 0.08));
+        return clamp(absoluteTop - topOffset);
+      }
+
+      // Default: center the anchor block in the viewport.
+      return clamp(absoluteTop + rect.height / 2 - vh / 2);
     };
 
     const buildStages = () => {
@@ -213,15 +218,33 @@ export default function SnapController() {
         '[data-snap-stage="footer"]',
       );
       if (footerEl) {
-        stages.push({
-          id: 'footer',
-          getY: () => {
-            const top =
-              footerEl.getBoundingClientRect().top + window.scrollY;
-            return Math.max(0, Math.min(maxScrollY(), top));
-          },
-          duration: 1.0,
-        });
+        const footerAnchors = Array.from(
+          footerEl.querySelectorAll<HTMLElement>(
+            '[data-snap-anchor^="footer-"]',
+          ),
+        );
+        if (footerAnchors.length > 0) {
+          // Element-based: each inner section gets its own stop so the
+          // user can actually scroll through the tall footer (routing
+          // table -> mega wordmark) instead of being stuck at its top.
+          footerAnchors.forEach((anchor, i) => {
+            stages.push({
+              id: `footer-${i}`,
+              getY: () => resolveAnchorY(anchor, null),
+              duration: 1.1,
+            });
+          });
+        } else {
+          stages.push({
+            id: 'footer',
+            getY: () => {
+              const top =
+                footerEl.getBoundingClientRect().top + window.scrollY;
+              return Math.max(0, Math.min(maxScrollY(), top));
+            },
+            duration: 1.0,
+          });
+        }
       }
 
       stagesRef.current = stages;
@@ -254,6 +277,39 @@ export default function SnapController() {
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
 
+    /** Find the stage whose target `scrollY` is closest to the current
+     *  page scroll position. Used e.g. to settle small touch drifts. */
+    const closestStageIndex = () => {
+      const stages = stagesRef.current;
+      if (!stages.length) return 0;
+      const y = window.scrollY;
+      let closest = 0;
+      let minD = Infinity;
+      stages.forEach((s, i) => {
+        const d = Math.abs(s.getY() - y);
+        if (d < minD) {
+          minD = d;
+          closest = i;
+        }
+      });
+      return closest;
+    };
+
+    /** First stage whose target `scrollY` lies meaningfully below the
+     *  user's current position. This is what a downward gesture should
+     *  target after the user has scrolled up natively — we never want
+     *  to skip an intermediate stage they haven't seen yet. */
+    const nextStageBelow = () => {
+      const stages = stagesRef.current;
+      if (!stages.length) return -1;
+      const y = window.scrollY;
+      const GAP = 24;
+      for (let i = 0; i < stages.length; i++) {
+        if (stages[i].getY() > y + GAP) return i;
+      }
+      return stages.length - 1;
+    };
+
     const goTo = (index: number) => {
       const stages = stagesRef.current;
       if (!stages.length) return;
@@ -264,11 +320,17 @@ export default function SnapController() {
       animatingRef.current = true;
       currentRef.current = target;
       gsap.to(window, {
-        scrollTo: { y: stage.getY(), autoKill: false },
+        // autoKill: true lets a user cancel the snap by scrolling / wheeling
+        // during the animation (e.g. to immediately scroll up natively).
+        scrollTo: { y: stage.getY(), autoKill: true },
         duration: stage.duration,
         ease: 'power2.inOut',
         overwrite: true,
         onComplete: () => {
+          animatingRef.current = false;
+          lastInputRef.current = performance.now();
+        },
+        onInterrupt: () => {
           animatingRef.current = false;
           lastInputRef.current = performance.now();
         },
@@ -280,40 +342,73 @@ export default function SnapController() {
       if (idx >= 0) goTo(idx);
     };
 
-    const isInteractiveTarget = (target: EventTarget | null) => {
+    /** Snap to the next stage below the user's current scroll position. */
+    const snapDown = () => {
+      const target = nextStageBelow();
+      if (target < 0) return;
+      goTo(target);
+    };
+
+    /**
+     * Whether a gesture on `target` should be ignored by snap.
+     *
+     * - `touch`: ignore touches inside the 3D studio canvas so users can
+     *   rotate the model with their finger.
+     * - `wheel` / `key`: never ignore because of the canvas (the studio 3D
+     *   has `enableZoom={false}`, so the wheel has no job there), which
+     *   means desktop users can scroll off the studio into the footer.
+     * - Always ignore inputs inside editable form fields or anything
+     *   explicitly opted out with `data-snap-ignore`.
+     */
+    const isInteractiveTarget = (
+      target: EventTarget | null,
+      kind: 'wheel' | 'touch' | 'key',
+    ) => {
       if (!(target instanceof Element)) return false;
-      const studio = document.querySelector('[data-snap-stage="studio"]');
-      if (studio && studio.contains(target) && target.closest('canvas')) {
-        return true;
+      if (kind === 'touch') {
+        const studio = document.querySelector('[data-snap-stage="studio"]');
+        if (studio && studio.contains(target) && target.closest('canvas')) {
+          return true;
+        }
       }
       return !!target.closest(
         'input, textarea, select, [contenteditable="true"], [data-snap-ignore]',
       );
     };
 
+    // Only downward gestures are hijacked. Upward scrolls are fully
+    // native so the user can freely review any section or step back out
+    // of a pinned area without fighting the snap animation.
+
     const onWheel = (e: WheelEvent) => {
       if (disabledRef.current) return;
-      if (isInteractiveTarget(e.target)) return;
-      if (Math.abs(e.deltaY) < WHEEL_THRESHOLD) return;
+      if (isInteractiveTarget(e.target, 'wheel')) return;
+      // Upward wheel: do nothing — native scroll handles it.
+      if (e.deltaY <= 0) return;
+      if (e.deltaY < WHEEL_THRESHOLD) return;
       e.preventDefault();
       const now = performance.now();
       if (animatingRef.current) return;
       if (now - lastInputRef.current < ANIM_COOLDOWN_MS) return;
       lastInputRef.current = now;
-      goTo(currentRef.current + (e.deltaY > 0 ? 1 : -1));
+      snapDown();
     };
 
     let touchStartY = 0;
     let touchStartT = 0;
     let touchActive = false;
+    /** null until we've decided the gesture's direction. */
+    let touchIntent: 'down' | 'up' | null = null;
+    const TOUCH_DECISION_PX = 6;
 
     const onTouchStart = (e: TouchEvent) => {
       if (disabledRef.current) return;
-      if (isInteractiveTarget(e.target)) {
+      if (isInteractiveTarget(e.target, 'touch')) {
         touchActive = false;
         return;
       }
       touchActive = true;
+      touchIntent = null;
       touchStartY = e.touches[0].clientY;
       touchStartT = performance.now();
     };
@@ -321,27 +416,43 @@ export default function SnapController() {
     const onTouchMove = (e: TouchEvent) => {
       if (disabledRef.current) return;
       if (!touchActive) return;
-      if (e.cancelable) e.preventDefault();
+      const currentY = e.touches[0].clientY;
+      const dy = touchStartY - currentY;
+      if (touchIntent === null) {
+        if (Math.abs(dy) < TOUCH_DECISION_PX) return;
+        // Finger moves up (dy > 0) = content moves up = scrolling DOWN.
+        // Finger moves down (dy < 0) = scrolling UP.
+        touchIntent = dy > 0 ? 'down' : 'up';
+      }
+      // Only hijack the gesture when the user is scrolling DOWN.
+      // Upward swipes stay 100% native.
+      if (touchIntent === 'down' && e.cancelable) e.preventDefault();
     };
 
     const onTouchEnd = (e: TouchEvent) => {
       if (disabledRef.current) return;
       if (!touchActive) return;
       touchActive = false;
+      const intent = touchIntent;
+      touchIntent = null;
+      // Upward swipe: we never intercepted it — nothing to do.
+      if (intent !== 'down') return;
+      if (animatingRef.current) return;
       const endY = e.changedTouches[0].clientY;
       const dy = touchStartY - endY;
       const dt = Math.max(1, performance.now() - touchStartT);
       const velocity = Math.abs(dy) / dt;
-      if (animatingRef.current) return;
+      // Small/slow swipes: just settle at the closest stage so the page
+      // doesn't end up mid-stage from the little bit of touch drift.
       if (
-        Math.abs(dy) < TOUCH_DIST_THRESHOLD &&
+        dy < TOUCH_DIST_THRESHOLD &&
         velocity < TOUCH_VELOCITY_THRESHOLD
       ) {
-        goTo(currentRef.current);
+        goTo(closestStageIndex());
         return;
       }
       lastInputRef.current = performance.now();
-      goTo(currentRef.current + (dy > 0 ? 1 : -1));
+      snapDown();
     };
 
     const onKey = (e: KeyboardEvent) => {
@@ -359,27 +470,16 @@ export default function SnapController() {
         return;
       }
       if (disabledRef.current) return;
-      if (isInteractiveTarget(e.target)) return;
+      if (isInteractiveTarget(e.target, 'key')) return;
       if (animatingRef.current) return;
+      // Only downward keys snap. ArrowUp / PageUp / Home stay native so
+      // the user can review upward content at their own pace.
       switch (e.key) {
         case 'ArrowDown':
         case 'PageDown':
         case ' ':
           e.preventDefault();
-          goTo(currentRef.current + 1);
-          break;
-        case 'ArrowUp':
-        case 'PageUp':
-          e.preventDefault();
-          goTo(currentRef.current - 1);
-          break;
-        case 'Home':
-          e.preventDefault();
-          goTo(0);
-          break;
-        case 'End':
-          e.preventDefault();
-          goTo(stagesRef.current.length - 1);
+          snapDown();
           break;
       }
     };
