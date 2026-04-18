@@ -137,8 +137,10 @@ export const VehicleScene = ({
 
     const heroScale = (0.75 + hero * 0.85) * mobileScaleFactor;
     const metricsScale = (1.16 - metrics * 1.28) * mobileScaleFactor;
-    // Urban / "Conquer the City": keep the vehicle noticeably smaller than the legacy ~1.4–1.8 range
-    const urbanScale = (0.98 - urban * 0.2) * mobileScaleFactor;
+    // Urban: slightly larger at full reveal so a clear silhouette reads beside the copy
+    const urbanScale =
+      (0.98 - urban * 0.12 + Math.sin(urban * Math.PI) * 0.04) *
+      mobileScaleFactor;
     const chargingScale = 1.25 * mobileScaleFactor;
     const daylightScale = 1.2 * mobileScaleFactor;
 
@@ -149,7 +151,16 @@ export const VehicleScene = ({
     if (daylight > 0) targetScale = daylightScale;
 
     const metricsX = 5 + metrics * 9;
-    const urbanX = 14 - urban * 18;
+    // Urban / "Conquer the City": sweep across the frame, then settle so a slice of
+    // the model stays visible when the copy block is fully revealed (scroll urban → 1).
+    let urbanX: number;
+    if (urban < 0.68) {
+      const t = urban / 0.68;
+      urbanX = THREE.MathUtils.lerp(14, -3.2, t);
+    } else {
+      const t = THREE.MathUtils.smoothstep((urban - 0.68) / 0.32, 0, 1);
+      urbanX = THREE.MathUtils.lerp(-3.2, 5.1, t);
+    }
 
     let chargingX: number;
     if (charging < 0.35) {
@@ -174,7 +185,7 @@ export const VehicleScene = ({
     let targetY = 0;
     const heroZ = hero * 2.5;
     const metricsZ = 2.5 + metrics * 4.5;
-    const urbanZ = 7 - urban * 5.5;
+    const urbanZ = THREE.MathUtils.lerp(7, 2.35, urban);
     const chargingZ = 1.2;
     const daylightZ = 0;
 
@@ -283,17 +294,31 @@ export const VehicleScene = ({
       }
     }
 
-    // Urban / "Conquer the City" on mobile: same right→left X drive, but negative
-    // world Y keeps the pass along the bottom third (positive Y was center-screen).
+    // Urban / "Conquer the City" on mobile: park in the lower center (below the copy card).
+    // Ending X far positive pushed the mesh past the right edge on narrow viewports; Z was
+    // too deep so it read as invisible above the line-art band.
     const mobileUrban =
       isMobile && urban > 0 && charging === 0 && daylight === 0;
     if (mobileUrban) {
-      targetX = urbanX;
-      targetY = THREE.MathUtils.lerp(-1.92, -2.55, urban);
-      targetZ = THREE.MathUtils.lerp(1.65, 1.35, urban);
-      targetScale = urbanScale;
+      let mux: number;
+      if (urban < 0.58) {
+        const t = urban / 0.58;
+        mux = THREE.MathUtils.lerp(9.5, -1.65, t);
+      } else {
+        const t = THREE.MathUtils.smoothstep((urban - 0.58) / 0.42, 0, 1);
+        mux = THREE.MathUtils.lerp(-1.65, 0.42, t);
+      }
+      targetX = mux;
+      // Higher Y + slightly farther Z so the full silhouette fits above the home
+      // indicator / viewport clip (was oversized and clipped at the bottom).
+      targetY = THREE.MathUtils.lerp(-1.12, -1.82, urban);
+      targetZ = THREE.MathUtils.lerp(3.05, 3.48, urban);
+      const baseUrban = 0.98 - urban * 0.12 + Math.sin(urban * Math.PI) * 0.04;
+      const presence = THREE.MathUtils.lerp(0.86, 1.1, urban);
+      targetScale = baseUrban * presence * mobileScaleFactor;
       targetRotationY = urbanRotationY;
       targetTilt = 0;
+      targetOpacity = 1;
     }
 
     const dt = Math.min(delta, 0.05);
@@ -310,10 +335,12 @@ export const VehicleScene = ({
       9,
     );
     smoothed.current.tilt = damp(smoothed.current.tilt, targetTilt, 9);
+    const opacityLambda =
+      mobileUrban && smoothed.current.opacity < 0.92 ? 28 : 12;
     smoothed.current.opacity = damp(
       smoothed.current.opacity,
       targetOpacity,
-      12,
+      opacityLambda,
     );
 
     const g = groupRef.current;

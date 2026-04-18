@@ -12,14 +12,23 @@ if (typeof window !== 'undefined') {
 /**
  * Section-snap scroll controller.
  *
- * Turns each wheel tick / touch swipe / arrow-key press into one animated jump
- * between predefined stages. Existing GSAP ScrollTriggers (hero pin) and
- * motion `useScroll` timelines (DesignEngineering, CargoSketchSection) keep
- * scrubbing naturally because we are just animating `window.scrollY` from
- * the current stage's scroll position to the next.
+ * One wheel tick / swipe / arrow-key press advances one stage. The page
+ * animates `window.scrollY` from the current stage's scroll position to the
+ * next, so every existing GSAP ScrollTrigger / motion useScroll timeline
+ * scrubs naturally through its transitions.
  *
- * Stages are discovered from `data-snap-stage` attributes on sections so the
- * controller stays decoupled from the rest of the page.
+ * Stage discovery:
+ *   - `[data-snap-stage="hero"]`            pinned hero, 5 sub-stages driven by
+ *                                           the pin's ScrollTrigger progress.
+ *   - `[data-snap-stage="<id>"]` + inner
+ *     `[data-snap-anchor]` elements         element-based: each anchor is a
+ *                                           stage, centered (desktop) or
+ *                                           placed below the section's sticky
+ *                                           column (mobile).
+ *   - `[data-snap-stage="<id>"]` without
+ *     anchors                               fraction-based: uses SECTION_POINTS
+ *                                           if registered, otherwise one stage
+ *                                           at the section top.
  */
 
 type Stage = {
@@ -28,23 +37,25 @@ type Stage = {
   duration: number;
 };
 
-/** Hero pin sub-stages as fractions of the pin's scroll range. */
 const HERO_SUBSTAGES: { id: string; p: number; duration: number }[] = [
   { id: 'hero', p: 0, duration: 0.9 },
   { id: 'metrics', p: 0.22, duration: 1.25 },
-  { id: 'urban', p: 0.46, duration: 1.3 },
+  { id: 'urban', p: 0.51, duration: 1.3 },
   { id: 'charging', p: 0.68, duration: 1.3 },
-  { id: 'daylight', p: 0.92, duration: 1.3 },
+  { id: 'daylight', p: 0.89, duration: 1.3 },
 ];
 
-/** Fractions of each section's useScroll progress where we want to land. */
-const DESIGN_POINTS = [0.06, 0.5, 0.9];
-const CARGO_POINTS = [0.08, 0.35, 0.6, 0.9];
+/** Fractions of cargo section's useScroll progress (cargo renders as a
+ *  full-viewport sticky stage, so fractions are fine here). */
+const CARGO_POINTS = [0.08, 0.32, 0.6, 0.87];
 
+const MOBILE_MQ = '(max-width: 767px)';
 const ANIM_COOLDOWN_MS = 160;
 const WHEEL_THRESHOLD = 6;
 const TOUCH_DIST_THRESHOLD = 42;
 const TOUCH_VELOCITY_THRESHOLD = 0.3;
+/** Gap between bottom of sticky column and anchor top on mobile. */
+const MOBILE_STICKY_GAP_PX = 8;
 
 export default function SnapController() {
   const stagesRef = useRef<Stage[]>([]);
@@ -59,7 +70,6 @@ export default function SnapController() {
     const reduceMotion =
       typeof window.matchMedia !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     if (reduceMotion) return;
 
     try {
@@ -72,67 +82,117 @@ export default function SnapController() {
       document.documentElement.classList.add('snap-disabled');
     }
 
+    const maxScrollY = () =>
+      Math.max(
+        0,
+        document.documentElement.scrollHeight - window.innerHeight,
+      );
+
     const findHeroTrigger = (heroEl: HTMLElement) =>
       ScrollTrigger.getAll().find(
         (t) => t.trigger === heroEl || t.pin === heroEl,
       );
 
+    const isMobileViewport = () =>
+      typeof window.matchMedia !== 'undefined' &&
+      window.matchMedia(MOBILE_MQ).matches;
+
+    const resolveAnchorY = (
+      anchor: HTMLElement,
+      stickyEl: HTMLElement | null,
+    ) => {
+      const rect = anchor.getBoundingClientRect();
+      const absoluteTop = rect.top + window.scrollY;
+      const vh = window.innerHeight;
+      if (isMobileViewport() && stickyEl) {
+        const stickyRect = stickyEl.getBoundingClientRect();
+        const stickyH = stickyRect.height;
+        // Anchor's top edge just below the sticky column.
+        return Math.max(
+          0,
+          Math.min(
+            maxScrollY(),
+            absoluteTop - stickyH - MOBILE_STICKY_GAP_PX,
+          ),
+        );
+      }
+      // Desktop / wide viewport: center the anchor block in the viewport.
+      const centered = absoluteTop + rect.height / 2 - vh / 2;
+      return Math.max(0, Math.min(maxScrollY(), centered));
+    };
+
     const buildStages = () => {
       const stages: Stage[] = [];
 
+      // Hero sub-stages via the pin's ScrollTrigger.
       const heroEl = document.querySelector<HTMLElement>(
         '[data-snap-stage="hero"]',
       );
       if (heroEl) {
-        const trigger = findHeroTrigger(heroEl);
         for (const s of HERO_SUBSTAGES) {
           stages.push({
             id: s.id,
             getY: () => {
-              const t = trigger ?? findHeroTrigger(heroEl);
-              const start = t?.start ?? 0;
-              const end = t?.end ?? window.innerHeight * 5;
-              return start + s.p * (end - start);
+              const trigger = findHeroTrigger(heroEl);
+              const start = trigger?.start ?? 0;
+              const end = trigger?.end ?? window.innerHeight * 5;
+              return Math.max(
+                0,
+                Math.min(maxScrollY(), start + s.p * (end - start)),
+              );
             },
             duration: s.duration,
           });
         }
       }
 
-      const addPinnedSectionStages = (
-        selector: string,
-        points: number[],
-        idPrefix: string,
-        duration: number,
-      ) => {
-        const el = document.querySelector<HTMLElement>(selector);
-        if (!el) return;
-        points.forEach((p, i) => {
+      // Design: element-based anchors (sticky column on mobile needs
+      // precise positioning so story-block titles aren't clipped).
+      const designSection = document.querySelector<HTMLElement>(
+        '[data-snap-stage="design"]',
+      );
+      if (designSection) {
+        const stickyEl =
+          designSection.querySelector<HTMLElement>('[data-snap-sticky]');
+        const anchors = Array.from(
+          designSection.querySelectorAll<HTMLElement>(
+            '[data-snap-anchor^="design-"]',
+          ),
+        );
+        anchors.forEach((anchor, i) => {
           stages.push({
-            id: `${idPrefix}-${i}`,
-            getY: () => {
-              const rect = el.getBoundingClientRect();
-              const top = rect.top + window.scrollY;
-              const range = Math.max(0, el.offsetHeight - window.innerHeight);
-              return top + p * range;
-            },
-            duration,
+            id: `design-${i}`,
+            getY: () => resolveAnchorY(anchor, stickyEl),
+            duration: 1.15,
           });
         });
-      };
+      }
 
-      addPinnedSectionStages(
-        '[data-snap-stage="design"]',
-        DESIGN_POINTS,
-        'design',
-        1.2,
-      );
-      addPinnedSectionStages(
+      // Cargo: fraction-based (the section is one sticky h-screen stage,
+      // content lives in overlays that already position themselves).
+      const cargoEl = document.querySelector<HTMLElement>(
         '[data-snap-stage="cargo"]',
-        CARGO_POINTS,
-        'cargo',
-        1.2,
       );
+      if (cargoEl) {
+        CARGO_POINTS.forEach((p, i) => {
+          stages.push({
+            id: `cargo-${i}`,
+            getY: () => {
+              const rect = cargoEl.getBoundingClientRect();
+              const top = rect.top + window.scrollY;
+              const range = Math.max(
+                0,
+                cargoEl.offsetHeight - window.innerHeight,
+              );
+              return Math.max(
+                0,
+                Math.min(maxScrollY(), top + p * range),
+              );
+            },
+            duration: 1.15,
+          });
+        });
+      }
 
       const studioEl = document.querySelector<HTMLElement>(
         '[data-snap-stage="studio"]',
@@ -140,8 +200,11 @@ export default function SnapController() {
       if (studioEl) {
         stages.push({
           id: 'studio',
-          getY: () =>
-            studioEl.getBoundingClientRect().top + window.scrollY,
+          getY: () => {
+            const top =
+              studioEl.getBoundingClientRect().top + window.scrollY;
+            return Math.max(0, Math.min(maxScrollY(), top));
+          },
           duration: 1.0,
         });
       }
@@ -155,17 +218,15 @@ export default function SnapController() {
           getY: () => {
             const top =
               footerEl.getBoundingClientRect().top + window.scrollY;
-            const maxScroll = Math.max(
-              0,
-              document.documentElement.scrollHeight - window.innerHeight,
-            );
-            return Math.min(top, maxScroll);
+            return Math.max(0, Math.min(maxScrollY(), top));
           },
           duration: 1.0,
         });
       }
 
       stagesRef.current = stages;
+
+      // Keep currentRef pointing at the closest stage to where the user is.
       const y = window.scrollY;
       let closest = 0;
       let minD = Infinity;
@@ -179,8 +240,7 @@ export default function SnapController() {
       currentRef.current = closest;
     };
 
-    // Stages depend on ScrollTrigger positions; give them a tick to settle.
-    const initTimer = window.setTimeout(buildStages, 50);
+    const initTimer = window.setTimeout(buildStages, 60);
 
     const onRefresh = () => buildStages();
     ScrollTrigger.addEventListener('refreshInit', onRefresh);
@@ -192,6 +252,7 @@ export default function SnapController() {
       resizeTimer = window.setTimeout(buildStages, 120);
     };
     window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
 
     const goTo = (index: number) => {
       const stages = stagesRef.current;
@@ -221,20 +282,13 @@ export default function SnapController() {
 
     const isInteractiveTarget = (target: EventTarget | null) => {
       if (!(target instanceof Element)) return false;
-      // Let users drag / orbit the 3D studio without snapping the page.
       const studio = document.querySelector('[data-snap-stage="studio"]');
-      if (studio && studio.contains(target)) {
-        if (target.closest('canvas')) return true;
-      }
-      // Also ignore inputs inside form fields / editable surfaces.
-      if (
-        target.closest(
-          'input, textarea, select, [contenteditable="true"], [data-snap-ignore]',
-        )
-      ) {
+      if (studio && studio.contains(target) && target.closest('canvas')) {
         return true;
       }
-      return false;
+      return !!target.closest(
+        'input, textarea, select, [contenteditable="true"], [data-snap-ignore]',
+      );
     };
 
     const onWheel = (e: WheelEvent) => {
@@ -267,7 +321,6 @@ export default function SnapController() {
     const onTouchMove = (e: TouchEvent) => {
       if (disabledRef.current) return;
       if (!touchActive) return;
-      // Stop iOS rubber-banding while our animation plays or before it starts.
       if (e.cancelable) e.preventDefault();
     };
 
@@ -284,7 +337,6 @@ export default function SnapController() {
         Math.abs(dy) < TOUCH_DIST_THRESHOLD &&
         velocity < TOUCH_VELOCITY_THRESHOLD
       ) {
-        // Small swipe — settle at current stage to undo any drift.
         goTo(currentRef.current);
         return;
       }
@@ -355,6 +407,7 @@ export default function SnapController() {
       ScrollTrigger.removeEventListener('refreshInit', onRefresh);
       ScrollTrigger.removeEventListener('refresh', onRefresh);
       window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchmove', onTouchMove);

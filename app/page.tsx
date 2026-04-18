@@ -52,7 +52,17 @@ export default function Home() {
           // 0.8 - 1.0: Daylight
           scrollData.current.hero = gsap.utils.clamp(0, 1, p * 5);
           scrollData.current.metrics = gsap.utils.clamp(0, 1, (p - 0.2) * 5);
-          scrollData.current.urban = gsap.utils.clamp(0, 1, (p - 0.4) * 5);
+          // SnapController pins "urban" at ~p=0.46 (see HERO_SUBSTAGES). A linear
+          // (p-0.4)*5 map only yields ~0.3 there, so the 3D beat never reached its
+          // settled pose. Ramp urban to 1 across [0.4, 0.46] and keep the wider
+          // plateau through the rest of the urban scroll window.
+          const urbanLinear = (p - 0.4) * 5;
+          const urbanSnapRamp = (p - 0.4) / 0.06;
+          scrollData.current.urban = gsap.utils.clamp(
+            0,
+            1,
+            Math.max(urbanLinear, urbanSnapRamp),
+          );
           scrollData.current.charging = gsap.utils.clamp(0, 1, (p - 0.6) * 5);
           scrollData.current.daylight = gsap.utils.clamp(0, 1, (p - 0.8) * 5);
         }
@@ -266,7 +276,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="urban-sidebar absolute inset-0 z-[35] isolate flex items-center justify-start px-6 sm:px-12 md:px-24 pointer-events-none opacity-0">
+        <div className="urban-sidebar absolute inset-0 z-[35] isolate flex items-center justify-start px-6 sm:px-12 md:px-24 max-md:items-start max-md:pt-[min(14vh,104px)] pointer-events-none opacity-0">
           <div className="max-w-xl pointer-events-auto text-left">
             <div className="relative rounded-2xl border border-white/[0.12] bg-black/80 px-6 py-8 shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_24px_80px_rgba(0,0,0,0.75)] backdrop-blur-md md:px-10 md:py-10">
               <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-black/90 via-black/70 to-transparent" aria-hidden />
