@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Suspense } from 'react';
-import { Environment } from '@react-three/drei';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -26,15 +24,20 @@ export default function Home() {
   useGSAP(() => {
     if (!containerRef.current) return;
 
-    // Use a single timeline for all UI transitions
+    ScrollTrigger.config({ ignoreMobileResize: true });
+    gsap.ticker.lagSmoothing(500, 33);
+
     const mainTl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         start: 'top top',
-        end: '+=1250%', 
-        scrub: 0.8, // Slightly smoother scrub (was 0.5)
+        end: '+=1250%',
+        scrub: 0.6,
         pin: true,
-        anticipatePin: 0, // Removed anticipatePin as it costs layout recalculations
+        pinSpacing: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        fastScrollEnd: true,
         preventOverlaps: true,
         // Single master update for 3D state - more performant than multiple tweens
         onUpdate: (self) => {
@@ -162,7 +165,7 @@ export default function Home() {
 
       <div className="fixed inset-4 orange-frame grid-overlay pointer-events-none z-50 opacity-10" />
 
-      <section ref={containerRef} className="relative h-screen w-full overflow-hidden bg-black transition-colors duration-200" style={{ willChange: 'background-color' }}>
+      <section ref={containerRef} className="relative h-screen w-full overflow-hidden bg-black">
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/images/sigiriya.png')" }}
@@ -184,11 +187,16 @@ export default function Home() {
 
         {/* 3D Canvas */}
         <div className="absolute inset-0 z-10 w-full h-full">
-          <Canvas dpr={1} gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true }} camera={{ position: [0, 0, 15], fov: 30 }}>
-            <ambientLight intensity={1.5} />
-            <spotLight position={[10, 20, 10]} angle={0.25} penumbra={1} intensity={2} />
-            <directionalLight position={[-10, 10, 5]} intensity={1} />
-            <Environment preset="city" resolution={256} />
+          <Canvas
+            dpr={[1, 1.5]}
+            gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
+            camera={{ position: [0, 0, 15], fov: 30 }}
+            shadows={false}
+            performance={{ min: 0.5 }}
+          >
+            <ambientLight intensity={1.4} />
+            <directionalLight position={[6, 10, 6]} intensity={1.6} />
+            <directionalLight position={[-8, 6, -4]} intensity={0.55} color={0x99bbff} />
             <Suspense fallback={null}>
               <VehicleScene scrollData={scrollData} />
             </Suspense>
