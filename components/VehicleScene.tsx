@@ -1,16 +1,19 @@
-'use client';
+"use client";
 
-import React, { useRef, useMemo, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
-import { useGLTF } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useRef, useMemo, useEffect } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
+import * as THREE from "three";
 
-const MODEL_PATH = '/models/etx-exterior-panels.glb';
+const MODEL_PATH = "/models/etx-exterior-panels.glb";
 const BASE_Y_ROTATION = Math.PI;
 
 type AnyMaterial = THREE.Material & { opacity?: number; transparent?: boolean };
 
-export const VehicleModel = React.forwardRef<THREE.Group, React.ComponentPropsWithoutRef<'group'>>((props, ref) => {
+export const VehicleModel = React.forwardRef<
+  THREE.Group,
+  React.ComponentPropsWithoutRef<"group">
+>((props, ref) => {
   const { scene } = useGLTF(MODEL_PATH);
 
   const clonedScene = useMemo(() => {
@@ -28,7 +31,9 @@ export const VehicleModel = React.forwardRef<THREE.Group, React.ComponentPropsWi
               return cloned;
             });
           } else {
-            child.material = (child.material as AnyMaterial).clone() as AnyMaterial;
+            child.material = (
+              child.material as AnyMaterial
+            ).clone() as AnyMaterial;
             (child.material as AnyMaterial).transparent = true;
           }
         }
@@ -59,9 +64,9 @@ export const VehicleModel = React.forwardRef<THREE.Group, React.ComponentPropsWi
     </group>
   );
 });
-VehicleModel.displayName = 'VehicleModel';
+VehicleModel.displayName = "VehicleModel";
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   useGLTF.preload(MODEL_PATH);
 }
 
@@ -73,21 +78,25 @@ type ScrollData = {
   daylight: number;
 };
 
-export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObject<ScrollData> }) => {
+export const VehicleScene = ({
+  scrollData,
+}: {
+  scrollData: React.MutableRefObject<ScrollData>;
+}) => {
   const groupRef = useRef<THREE.Group>(null);
   const vehicleRef = useRef<THREE.Group>(null);
   const invalidate = useThree((s) => s.invalidate);
 
   const isMobileRef = useRef<boolean>(false);
   useEffect(() => {
-    if (typeof globalThis.window === 'undefined') return;
+    if (typeof globalThis.window === "undefined") return;
     const update = () => {
       isMobileRef.current = globalThis.window.innerWidth < 768;
       invalidate();
     };
     update();
-    globalThis.window.addEventListener('resize', update, { passive: true });
-    return () => globalThis.window.removeEventListener('resize', update);
+    globalThis.window.addEventListener("resize", update, { passive: true });
+    return () => globalThis.window.removeEventListener("resize", update);
   }, [invalidate]);
 
   const materialsRef = useRef<AnyMaterial[]>([]);
@@ -114,7 +123,7 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     y: 0,
     z: 0,
     scale: 0.6,
-    rotationY: BASE_Y_ROTATION - (Math.PI * 0.15),
+    rotationY: BASE_Y_ROTATION - Math.PI * 0.15,
     tilt: 0,
     opacity: 1,
   });
@@ -126,9 +135,10 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     const isMobile = isMobileRef.current;
     const mobileScaleFactor = isMobile ? 0.6 : 1;
 
-    const heroScale = (0.75 + (hero * 0.85)) * mobileScaleFactor;
-    const metricsScale = (1.6 - (metrics * 1.28)) * mobileScaleFactor;
-    const urbanScale = (1.8 - (urban * 0.4)) * mobileScaleFactor;
+    const heroScale = (0.75 + hero * 0.85) * mobileScaleFactor;
+    const metricsScale = (1.16 - metrics * 1.28) * mobileScaleFactor;
+    // Urban / "Conquer the City": keep the vehicle noticeably smaller than the legacy ~1.4–1.8 range
+    const urbanScale = (0.98 - urban * 0.2) * mobileScaleFactor;
     const chargingScale = 1.25 * mobileScaleFactor;
     const daylightScale = 1.2 * mobileScaleFactor;
 
@@ -139,7 +149,7 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     if (daylight > 0) targetScale = daylightScale;
 
     const metricsX = 5 + metrics * 9;
-    const urbanX = 14 - (urban * 18);
+    const urbanX = 14 - urban * 18;
 
     let chargingX: number;
     if (charging < 0.35) {
@@ -153,7 +163,7 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
       const ease = t * t;
       chargingX = 3 + ease * 26;
     }
-    const daylightX = -35 + (daylight * 70);
+    const daylightX = -35 + daylight * 70;
 
     let targetX = 0;
     if (metrics > 0) targetX = metricsX;
@@ -163,8 +173,8 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
 
     let targetY = 0;
     const heroZ = hero * 2.5;
-    const metricsZ = 2.5 + (metrics * 4.5);
-    const urbanZ = 7 - (urban * 5.5);
+    const metricsZ = 2.5 + metrics * 4.5;
+    const urbanZ = 7 - urban * 5.5;
     const chargingZ = 1.2;
     const daylightZ = 0;
 
@@ -174,12 +184,12 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     if (charging > 0) targetZ = chargingZ;
     if (daylight > 0) targetZ = daylightZ;
 
-    const initialRotation = BASE_Y_ROTATION - (Math.PI * 0.15);
-    const heroRotationY = (hero * Math.PI * 0.5) + initialRotation;
-    const metricsRotationY = heroRotationY - (metrics * (Math.PI / 4));
-    const urbanRotationY = BASE_Y_ROTATION - (Math.PI * 0.5);
+    const initialRotation = BASE_Y_ROTATION - Math.PI * 0.15;
+    const heroRotationY = hero * Math.PI * 0.5 + initialRotation;
+    const metricsRotationY = heroRotationY - metrics * (Math.PI / 4);
+    const urbanRotationY = BASE_Y_ROTATION - Math.PI * 0.5;
     const chargingRotationY = BASE_Y_ROTATION;
-    const daylightRotationY = BASE_Y_ROTATION + (Math.PI * 0.5);
+    const daylightRotationY = BASE_Y_ROTATION + Math.PI * 0.5;
 
     let targetRotationY = heroRotationY;
     if (metrics > 0) targetRotationY = metricsRotationY;
@@ -192,11 +202,18 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     let targetTilt = charging > 0 ? 0 : urbanTilt;
 
     let targetOpacity = 1;
-    if (charging > 0.82) targetOpacity = Math.max(0, 1 - ((charging - 0.82) / 0.18));
+    if (charging > 0.82)
+      targetOpacity = Math.max(0, 1 - (charging - 0.82) / 0.18);
     if (daylight > 0) targetOpacity = 1;
-    if (daylight > 0.9) targetOpacity = Math.max(0, 1 - ((daylight - 0.9) * 10));
+    if (daylight > 0.9) targetOpacity = Math.max(0, 1 - (daylight - 0.9) * 10);
 
-    if (isMobile && urban === 0 && charging === 0 && daylight === 0 && metrics === 0) {
+    if (
+      isMobile &&
+      urban === 0 &&
+      charging === 0 &&
+      daylight === 0 &&
+      metrics === 0
+    ) {
       const hx = hero * hero;
       targetX = THREE.MathUtils.lerp(-1.35, 0.12, hx);
       targetZ = hero * 3.55;
@@ -239,7 +256,8 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
 
       targetTilt = 0;
       const baseShowcaseY = heroRotationY - t * (Math.PI / 4);
-      targetRotationY = baseShowcaseY + state.clock.elapsedTime * (0.45 + 0.55 * t);
+      targetRotationY =
+        baseShowcaseY + state.clock.elapsedTime * (0.45 + 0.55 * t);
     }
 
     const dt = Math.min(delta, 0.05);
@@ -250,9 +268,17 @@ export const VehicleScene = ({ scrollData }: { scrollData: React.MutableRefObjec
     smoothed.current.y = damp(smoothed.current.y, targetY, 9);
     smoothed.current.z = damp(smoothed.current.z, targetZ, 9);
     smoothed.current.scale = damp(smoothed.current.scale, targetScale, 10);
-    smoothed.current.rotationY = damp(smoothed.current.rotationY, targetRotationY, 9);
+    smoothed.current.rotationY = damp(
+      smoothed.current.rotationY,
+      targetRotationY,
+      9,
+    );
     smoothed.current.tilt = damp(smoothed.current.tilt, targetTilt, 9);
-    smoothed.current.opacity = damp(smoothed.current.opacity, targetOpacity, 12);
+    smoothed.current.opacity = damp(
+      smoothed.current.opacity,
+      targetOpacity,
+      12,
+    );
 
     const g = groupRef.current;
     g.position.x = smoothed.current.x;

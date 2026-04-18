@@ -9,6 +9,7 @@ import { Navbar } from '@/components/Navbar';
 import { VehicleScene } from '@/components/VehicleScene';
 import { Loader } from '@/components/Loader';
 import DesignEngineering from '@/components/DesignEngineering';
+import CargoSketchSection from '@/components/CargoSketchSection';
 import InteractiveStudio from '@/components/InteractiveStudio';
 import Footer from '@/components/Footer';
 
@@ -312,6 +313,7 @@ export default function Home() {
       </section>
 
       <DesignEngineering />
+      <CargoSketchSection />
       <InteractiveStudio />
       <Footer />
     </main>
