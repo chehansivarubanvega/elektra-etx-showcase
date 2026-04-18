@@ -12,6 +12,7 @@ import DesignEngineering from '@/components/DesignEngineering';
 import CargoSketchSection from '@/components/CargoSketchSection';
 import InteractiveStudio from '@/components/InteractiveStudio';
 import Footer from '@/components/Footer';
+import SnapController from '@/components/SnapController';
 
 // Register ScrollTrigger
 if (typeof window !== 'undefined') {
@@ -32,7 +33,7 @@ export default function Home() {
       scrollTrigger: {
         trigger: containerRef.current,
         start: 'top top',
-        end: '+=1250%',
+        end: '+=500%',
         scrub: 0.6,
         pin: true,
         pinSpacing: true,
@@ -160,13 +161,18 @@ export default function Home() {
   ];
 
   return (
-    <main className="relative min-w-0 max-w-full overflow-x-clip bg-[#000000] text-white min-h-[1400vh]">
+    <main className="relative min-w-0 max-w-full overflow-x-clip bg-[#000000] text-white">
       <Loader />
       <Navbar />
+      <SnapController />
 
       <div className="fixed inset-4 orange-frame grid-overlay pointer-events-none z-50 opacity-10" />
 
-      <section ref={containerRef} className="relative h-screen w-full min-w-0 max-w-full overflow-hidden bg-black">
+      <section
+        ref={containerRef}
+        data-snap-stage="hero"
+        className="relative h-screen w-full min-w-0 max-w-full overflow-hidden bg-black"
+      >
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/images/sigiriya.png')" }}

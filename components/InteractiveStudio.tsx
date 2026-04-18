@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense, useRef, useState, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { ContactShadows, OrbitControls, Html, useProgress } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import gsap from 'gsap';
@@ -23,6 +23,34 @@ const CanvasLoader = () => {
 };
 
 const MOBILE_MQ = '(max-width: 767px)';
+
+/**
+ * OrbitControls sets the canvas to `touch-action: none`, which blocks vertical page scroll
+ * when the user drags on the model. After connect(), override to `pan-y` so vertical swipes
+ * scroll the document while horizontal drags still rotate the camera.
+ */
+function CanvasVerticalTouchScroll({ active }: { active: boolean }) {
+  const gl = useThree((s) => s.gl);
+
+  useEffect(() => {
+    const el = gl.domElement;
+    const apply = () => {
+      if (active) {
+        el.style.touchAction = 'pan-y';
+      } else {
+        el.style.removeProperty('touch-action');
+      }
+    };
+    // Defer past OrbitControls' connect() effect so our value wins.
+    const id = requestAnimationFrame(apply);
+    return () => {
+      cancelAnimationFrame(id);
+      el.style.removeProperty('touch-action');
+    };
+  }, [active, gl]);
+
+  return null;
+}
 
 const InteractiveStudio = () => {
   const [interacted, setInteracted] = useState(false);
@@ -111,6 +139,7 @@ const InteractiveStudio = () => {
       ref={sectionRef}
       className="relative h-[100vh] w-full min-w-0 max-w-full overflow-x-clip bg-[#000000] flex items-center justify-center p-4 md:p-8"
       id="interactive-studio"
+      data-snap-stage="studio"
     >
       <div
         className="relative w-full h-full rounded-[40px] overflow-hidden"
@@ -156,6 +185,7 @@ const InteractiveStudio = () => {
                   autoRotateSpeed={0.5}
                   onStart={handleInteractionStart}
                 />
+                <CanvasVerticalTouchScroll active={orbitEnabled} />
               </Suspense>
             </Canvas>
           </div>

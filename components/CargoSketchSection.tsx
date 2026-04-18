@@ -288,6 +288,7 @@ const CargoSketchSection = () => {
     <section
       ref={sectionRef}
       id="cargo-versatility"
+      data-snap-stage="cargo"
       className="relative w-full min-w-0 max-w-full overflow-x-clip bg-black text-white"
       style={{ height: "300vh" }}
     >

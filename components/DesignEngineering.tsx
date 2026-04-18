@@ -275,6 +275,7 @@ const DesignEngineering = () => {
       ref={containerRef}
       className="relative flex w-full min-w-0 max-w-full flex-col items-stretch overflow-x-clip border-t border-white/10 bg-[#030303] text-white md:flex-row md:bg-[#000000]"
       id="design-engineering"
+      data-snap-stage="design"
     >
       <div className="sticky top-0 z-30 flex min-h-0 w-full shrink-0 flex-col items-stretch border-b border-white/10 bg-[#030303] md:z-0 md:h-screen md:max-h-none md:min-h-0 md:w-1/2 md:border-b-0 md:border-r md:bg-black">
         {/* Mobile: title stays pinned with the sequence (same sticky column as canvas) */}

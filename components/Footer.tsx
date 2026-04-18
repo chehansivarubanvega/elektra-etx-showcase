@@ -76,6 +76,7 @@ const Footer = () => {
       whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.6 }}
+      data-snap-stage="footer"
       className="relative w-full min-w-0 max-w-full overflow-hidden border-t border-white/[0.08] bg-[#030303] text-white"
     >
       {/* Tech grid + vignette */}
