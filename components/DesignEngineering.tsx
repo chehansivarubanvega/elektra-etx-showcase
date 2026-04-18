@@ -276,33 +276,33 @@ const DesignEngineering = () => {
       className="relative flex w-full min-w-0 max-w-full flex-col items-stretch overflow-x-clip border-t border-white/10 bg-[#030303] text-white md:flex-row md:bg-[#000000]"
       id="design-engineering"
     >
-      {/* —— Mobile: compact rail (desktop: hidden) —— */}
-      <div className="relative border-b border-white/[0.06] bg-gradient-to-b from-black to-[#080808] px-4 pb-5 pt-8 md:hidden">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
-          }}
-          aria-hidden
-        />
-        <div className="relative">
-          <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.42em] text-[#FF6B00]">
-            Design & engineering
-          </p>
-          <h2 className="mt-2 max-w-[20ch] text-2xl font-black uppercase leading-[0.95] tracking-[-0.03em] text-white">
-            Every angle, intentional.
-          </h2>
-          <p className="mt-3 max-w-[34ch] text-[13px] leading-relaxed text-white/50">
-            Scroll to move through the story—exterior, cabin, and what drives the ETX.
-          </p>
-        </div>
-      </div>
-
       <div className="sticky top-0 z-30 flex min-h-0 w-full shrink-0 flex-col items-stretch border-b border-white/10 bg-[#030303] md:z-0 md:h-screen md:max-h-none md:min-h-0 md:w-1/2 md:border-b-0 md:border-r md:bg-black">
-        {/* Mobile: shorter viewport + full width — less “floating box” dead space */}
-        <div className="flex min-h-[min(40dvh,360px)] max-h-[min(48dvh,440px)] flex-1 flex-col justify-end px-3 pb-1 pt-3 md:max-h-none md:min-h-0 md:flex-none md:justify-center md:p-10 lg:p-16 xl:p-20">
+        {/* Mobile: title stays pinned with the sequence (same sticky column as canvas) */}
+        <div className="relative shrink-0 border-b border-white/[0.06] bg-gradient-to-b from-black to-[#080808] px-4 pb-3 pt-5 md:hidden">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-25"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+            }}
+            aria-hidden
+          />
+          <div className="relative">
+            <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.42em] text-[#FF6B00]">
+              Design & engineering
+            </p>
+            <h2 className="mt-1.5 max-w-[22ch] text-[clamp(1.35rem,4.2vw+0.6rem,1.75rem)] font-black uppercase leading-[1.02] tracking-[-0.03em] text-white">
+              Every angle, intentional.
+            </h2>
+            <p className="mt-2 max-w-[36ch] text-[12px] leading-snug text-white/48">
+              Scroll to explore exterior, cabin, and powertrain.
+            </p>
+          </div>
+        </div>
+
+        {/* Mobile: sequence viewport — slightly shorter so title + bar fit in view */}
+        <div className="flex min-h-[min(34dvh,300px)] max-h-[min(42dvh,380px)] flex-1 flex-col justify-end px-3 pb-1 pt-2 md:max-h-none md:min-h-0 md:flex-none md:justify-center md:p-10 lg:p-16 xl:p-20">
           <div className="group relative mx-auto flex h-full min-h-[200px] w-full max-w-none flex-1 items-stretch md:max-h-[70vh] md:max-w-none md:items-center md:justify-center">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#FF6B00]/12 via-transparent to-blue-500/5 p-px md:hidden">
               <div className="h-full w-full rounded-[0.98rem] bg-[#070707]" />
