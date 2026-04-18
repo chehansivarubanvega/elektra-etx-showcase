@@ -6,6 +6,9 @@ import { motion, useScroll, useTransform } from "motion/react";
 const TOTAL_FRAMES = 40;
 const LAST_FRAME = TOTAL_FRAMES - 1;
 const PRIORITY_LEAD = 8;
+/** Mobile: when “INNOVATION IN MOTION” is on screen, never show frames before `6.webp` (0-based index 5). */
+const MOBILE_POWERTRAIN_MIN_FRAME_INDEX = 5;
+const MOBILE_MQ = "(max-width: 767px)";
 /** 0-based index for `33.webp` when the powertrain headline reaches the viewport. */
 const POWERTRAIN_FRAME_INDEX = 32;
 /** Viewport Y (px from top) where we treat the headline as “on screen” for sync with frame 33. */
@@ -215,14 +218,34 @@ const DesignEngineering = () => {
     resizeObserver?.observe(canvas);
     sync();
 
+    const isPowertrainHeadlineVisibleMobile = () => {
+      const w = globalThis.window;
+      if (
+        typeof w === "undefined" ||
+        !w.matchMedia(MOBILE_MQ).matches ||
+        !powertrainHeadlineRef.current
+      ) {
+        return false;
+      }
+      const r = powertrainHeadlineRef.current.getBoundingClientRect();
+      const vh = w.innerHeight;
+      return r.bottom > vh * 0.12 && r.top < vh * 0.9;
+    };
+
     const render = () => {
       const p = Math.min(1, Math.max(0, scrollYProgress.get()));
       const pAlign = computePowertrainAlignProgress();
       const targetExact = remappedExactFrame(p, pAlign);
-      const frameIndex = Math.min(
+      let frameIndex = Math.min(
         LAST_FRAME,
         Math.max(0, Math.round(targetExact)),
       );
+      if (isPowertrainHeadlineVisibleMobile()) {
+        frameIndex = Math.max(
+          MOBILE_POWERTRAIN_MIN_FRAME_INDEX,
+          frameIndex,
+        );
+      }
       if (frameIndex !== lastDrawnIndex) {
         if (drawFrame(frameIndex)) lastDrawnIndex = frameIndex;
       }
@@ -273,13 +296,14 @@ const DesignEngineering = () => {
   return (
     <section
       ref={containerRef}
-      className="relative flex w-full min-w-0 max-w-full flex-col items-stretch overflow-x-clip border-t border-white/10 bg-[#030303] text-white md:flex-row md:bg-[#000000]"
+      className="relative flex w-full min-w-0 max-w-full flex-col items-stretch overflow-x-clip border-t border-white/10 bg-[#030303] text-white md:flex-row md:items-start md:bg-[#000000]"
       id="design-engineering"
       data-snap-stage="design"
+      data-snap-native-scroll-mobile="true"
     >
       <div
         data-snap-sticky="true"
-        className="sticky top-0 z-30 flex min-h-0 w-full shrink-0 flex-col items-stretch border-b border-white/10 bg-[#030303] md:z-0 md:h-screen md:max-h-none md:min-h-0 md:w-1/2 md:border-b-0 md:border-r md:bg-black"
+        className="sticky top-0 z-30 flex min-h-0 w-full shrink-0 flex-col items-stretch border-b border-white/10 bg-[#030303] md:z-0 md:h-screen md:max-h-none md:min-h-0 md:w-1/2 md:self-start md:border-b-0 md:border-r md:bg-black"
       >
         {/* Mobile: title stays pinned with the sequence (same sticky column as canvas) */}
         <div className="relative shrink-0 border-b border-white/[0.06] bg-gradient-to-b from-black to-[#080808] px-4 pb-3 pt-5 md:hidden">
@@ -305,13 +329,15 @@ const DesignEngineering = () => {
           </div>
         </div>
 
-        {/* Mobile: sequence viewport — slightly shorter so title + bar fit in view */}
-        <div className="flex min-h-[min(34dvh,300px)] max-h-[min(42dvh,380px)] flex-1 flex-col justify-end px-3 pb-1 pt-2 md:max-h-none md:min-h-0 md:flex-none md:justify-center md:p-10 lg:p-16 xl:p-20">
-          <div className="group relative mx-auto flex h-full min-h-[200px] w-full max-w-none flex-1 items-stretch md:max-h-[70vh] md:max-w-none md:items-center md:justify-center">
+        {/* Mobile: sequence viewport — slightly shorter so title + bar fit in view.
+            Desktop: fill the sticky column (real height = 100vh, not stretched to the tall copy column)
+            and center the frame with grid so md / “tablet landscape” viewports behave consistently. */}
+        <div className="flex min-h-[min(34dvh,300px)] max-h-[min(42dvh,380px)] flex-1 flex-col justify-end px-3 pb-1 pt-2 md:grid md:max-h-none md:min-h-0 md:flex-1 md:place-content-center md:p-10 lg:p-16 xl:p-20">
+          <div className="group relative mx-auto flex h-full min-h-[200px] w-full max-w-none flex-1 items-stretch md:h-auto md:max-h-[70vh] md:w-full md:max-w-none md:flex-none md:place-self-center">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#FF6B00]/12 via-transparent to-blue-500/5 p-px md:hidden">
               <div className="h-full w-full rounded-[0.98rem] bg-[#070707]" />
             </div>
-            <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#050505] shadow-[0_16px_48px_rgba(0,0,0,0.5)] md:rounded-none md:border-0 md:bg-transparent md:shadow-none">
+            <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#050505] shadow-[0_16px_48px_rgba(0,0,0,0.5)] md:h-[min(70vh,720px)] md:max-h-[70vh] md:rounded-none md:border-0 md:bg-transparent md:shadow-none">
               <div
                 className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-[#FF6B00]/45 to-transparent md:hidden"
                 aria-hidden
@@ -329,10 +355,10 @@ const DesignEngineering = () => {
                 Live
               </div>
 
-              <div className="relative z-20 flex min-h-0 flex-1 flex-col justify-end px-1.5 pb-1.5 pt-8 md:flex-none md:justify-center md:p-0 md:pt-0">
+              <div className="relative z-20 flex min-h-0 flex-1 flex-col justify-end px-1.5 pb-1.5 pt-8 md:min-h-0 md:flex-1 md:justify-center md:p-0 md:pt-0">
                 <canvas
                   ref={canvasRef}
-                  className="block max-h-full min-h-0 w-full min-w-0 flex-1"
+                  className="block max-h-full min-h-0 w-full min-w-0 flex-1 md:min-h-0"
                 />
               </div>
 

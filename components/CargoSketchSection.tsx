@@ -24,9 +24,9 @@ const FEATURE_HIGHLIGHTS = [
     title: "Room for big loads",
     description:
       "The back is sized for bulky cargo — large boxes, a big TV, or a full shop without squeezing.",
-    anchor: { top: "62%", left: "74%" },
+    anchor: { top: "44%", left: "76%" },
     labelSide: "right" as const,
-    lineLength: 128,
+    lineLength: 104,
   },
   {
     key: "cabin",
@@ -34,9 +34,10 @@ const FEATURE_HIGHLIGHTS = [
     title: "Comfort for every seat",
     description:
       "Passengers get a proper cabin: supportive seating and space so short hops and longer rides both feel easy.",
-    anchor: { top: "38%", left: "30%" },
+    // Dot high on the glassline; long tether keeps the card in the upper-left margin, off the sketch.
+    anchor: { top: "22%", left: "44%" },
     labelSide: "left" as const,
-    lineLength: 148,
+    lineLength: 220,
   },
   {
     key: "mode",
@@ -44,9 +45,10 @@ const FEATURE_HIGHLIGHTS = [
     title: "One vehicle, many days",
     description:
       "Switch between errands, work, and family trips without feeling like you need a second car.",
-    anchor: { top: "80%", left: "48%" },
+    // Lower + slightly inboard so the card clears “Room for big loads” vertically.
+    anchor: { top: "74%", left: "64%" },
     labelSide: "right" as const,
-    lineLength: 118,
+    lineLength: 124,
   },
 ] as const;
 
@@ -59,6 +61,10 @@ const PARAGRAPH_LINES = [
   "A harmonious blend of practicality",
   "and understated luxury.",
 ];
+
+/** Shared sizing for the sequence window + the HUD tether overlay so anchors stay aligned. */
+const CARGO_DISPLAY_SHELL_CLASS =
+  "relative h-[min(46dvh,440px)] w-[min(92vw,420px)] min-h-[240px] min-w-[240px] max-w-[420px] max-h-[min(46dvh,440px)] md:h-[min(56vh,500px)] md:w-[min(52vw,700px)] md:max-h-none md:min-h-[260px] md:min-w-[260px]";
 
 const CargoSketchSection = () => {
   const sectionRef = useRef<HTMLElement>(null);
@@ -289,6 +295,7 @@ const CargoSketchSection = () => {
       ref={sectionRef}
       id="cargo-versatility"
       data-snap-stage="cargo"
+      data-snap-native-scroll-mobile="true"
       className="relative w-full min-w-0 max-w-full overflow-x-clip bg-black text-white"
       style={{ height: "300vh" }}
     >
@@ -384,7 +391,7 @@ const CargoSketchSection = () => {
         </div>
 
         {/* ─── Desktop Hero Headline (top-left) ──────────────────────────── */}
-        <div className="pointer-events-none absolute left-6 top-[14%] z-[18] hidden max-w-[46%] md:left-14 md:block lg:left-20">
+        <div className="pointer-events-none absolute left-6 top-[14%] z-[24] hidden max-w-[46%] md:left-14 md:block lg:left-20">
           <div className="mb-4 flex items-center gap-3">
             <div className="h-2 w-2 shrink-0 bg-[#FF6B00]" />
             <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#FF6B00]">
@@ -483,11 +490,11 @@ const CargoSketchSection = () => {
           </h2>
         </div>
 
-        {/* ─── Canvas Display Window ──────────────────────────────────────
-            Desktop: centered, 54vw × 58vh.
-            Mobile: positioned below headline, 82vw × 42vh (portrait), centered horizontally. */}
-        <div className="pointer-events-none absolute inset-x-0 top-[22vh] z-[10] flex justify-center md:inset-0 md:top-0 md:items-center">
-          <div className="relative h-[min(46dvh,440px)] w-[min(92vw,420px)] min-h-[240px] min-w-[240px] max-w-[420px] max-h-[min(46dvh,440px)] md:h-[min(58vh,520px)] md:w-[min(54vw,760px)] md:max-h-none md:min-h-[280px] md:min-w-[280px]">
+        {/* ─── Canvas Display Window (no HUD) ─────────────────────────────
+            Desktop: centered; z below copy/callouts so the frame does not clip headline or narrative.
+            Mobile: below headline; same shell class as the tether overlay for aligned % anchors. */}
+        <div className="pointer-events-none absolute inset-x-0 top-[22vh] z-[12] flex justify-center md:inset-0 md:top-0 md:items-center">
+          <div className={CARGO_DISPLAY_SHELL_CLASS}>
             {/* Soft orange halo behind the sketch */}
             <div
               aria-hidden
@@ -569,8 +576,12 @@ const CargoSketchSection = () => {
               <div className="absolute bottom-0 left-0 h-3 w-3 border-b border-l border-[#FF6B00]/80" />
               <div className="absolute bottom-0 right-0 h-3 w-3 border-b border-r border-[#FF6B00]/80" />
             </div>
+          </div>
+        </div>
 
-            {/* HUD Callouts — desktop only; mobile gets its own spec manifest below */}
+        {/* HUD tether cards — same shell geometry as the window; z above narrative, below headline */}
+        <div className="pointer-events-none absolute inset-x-0 top-[22vh] z-[22] flex justify-center md:inset-0 md:top-0 md:items-center">
+          <div className={`${CARGO_DISPLAY_SHELL_CLASS} pointer-events-none`}>
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 hidden md:block"
@@ -582,8 +593,8 @@ const CargoSketchSection = () => {
           </div>
         </div>
 
-        {/* ─── Floating narrative paragraph (bottom-right) ────────────────── */}
-        <div className="pointer-events-none absolute bottom-[12%] right-6 z-[18] hidden w-[min(400px,36vw)] md:right-14 md:block lg:right-20">
+        {/* ─── Floating narrative paragraph (bottom-left gutter; avoids right-side HUD callouts) ─ */}
+        <div className="pointer-events-none absolute bottom-[10%] left-6 z-[18] hidden w-[min(320px,28vw)] max-w-full md:left-14 md:block lg:left-20">
           <div className="mb-5 flex items-center gap-3">
             <span className="h-px w-10 bg-[#FF6B00]" />
             <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-[#FF6B00]">

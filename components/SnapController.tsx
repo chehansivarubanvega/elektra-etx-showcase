@@ -29,6 +29,11 @@ if (typeof window !== 'undefined') {
  *     anchors                               fraction-based: uses SECTION_POINTS
  *                                           if registered, otherwise one stage
  *                                           at the section top.
+ *
+ * Mobile native scroll (no snap hijack, no substages for that section):
+ *   - `[data-snap-native-scroll-mobile="true"]` on a section — at max-width
+ *     767px the viewport overlapping that section uses native scrolling only;
+ *     design/cargo substages are omitted from the stage list.
  */
 
 type Stage = {
@@ -97,6 +102,22 @@ export default function SnapController() {
       typeof window.matchMedia !== 'undefined' &&
       window.matchMedia(MOBILE_MQ).matches;
 
+    /** Sections marked for fully native scroll on mobile (design, cargo). */
+    const isNativeMobileScrollZone = () => {
+      if (!isMobileViewport()) return false;
+      const els = document.querySelectorAll<HTMLElement>(
+        '[data-snap-native-scroll-mobile="true"]',
+      );
+      const scrollTop = window.scrollY;
+      const scrollBottom = scrollTop + window.innerHeight;
+      for (const el of els) {
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        const bottom = top + el.offsetHeight;
+        if (scrollBottom > top + 2 && scrollTop < bottom - 2) return true;
+      }
+      return false;
+    };
+
     const resolveAnchorY = (
       anchor: HTMLElement,
       stickyEl: HTMLElement | null,
@@ -151,12 +172,11 @@ export default function SnapController() {
         }
       }
 
-      // Design: element-based anchors (sticky column on mobile needs
-      // precise positioning so story-block titles aren't clipped).
+      // Design: element-based anchors (desktop). Mobile uses native scroll.
       const designSection = document.querySelector<HTMLElement>(
         '[data-snap-stage="design"]',
       );
-      if (designSection) {
+      if (designSection && !isMobileViewport()) {
         const stickyEl =
           designSection.querySelector<HTMLElement>('[data-snap-sticky]');
         const anchors = Array.from(
@@ -173,12 +193,11 @@ export default function SnapController() {
         });
       }
 
-      // Cargo: fraction-based (the section is one sticky h-screen stage,
-      // content lives in overlays that already position themselves).
+      // Cargo: fraction-based on desktop. Mobile uses native scroll.
       const cargoEl = document.querySelector<HTMLElement>(
         '[data-snap-stage="cargo"]',
       );
-      if (cargoEl) {
+      if (cargoEl && !isMobileViewport()) {
         CARGO_POINTS.forEach((p, i) => {
           stages.push({
             id: `cargo-${i}`,
@@ -314,15 +333,26 @@ export default function SnapController() {
       const stages = stagesRef.current;
       if (!stages.length) return;
       const target = Math.max(0, Math.min(stages.length - 1, index));
-      if (target === currentRef.current && !animatingRef.current) return;
       const stage = stages[target];
       if (!stage) return;
+      const targetY = stage.getY();
+      // Compare to the *actual* scroll position rather than the (possibly
+      // stale) stored index. After a native upward scroll, currentRef
+      // can equal `target` while the user is far away — we still need to
+      // animate them down to the stage.
+      if (
+        !animatingRef.current &&
+        Math.abs(window.scrollY - targetY) < 4
+      ) {
+        currentRef.current = target;
+        return;
+      }
       animatingRef.current = true;
       currentRef.current = target;
       gsap.to(window, {
         // autoKill: true lets a user cancel the snap by scrolling / wheeling
         // during the animation (e.g. to immediately scroll up natively).
-        scrollTo: { y: stage.getY(), autoKill: true },
+        scrollTo: { y: targetY, autoKill: true },
         duration: stage.duration,
         ease: 'power2.inOut',
         overwrite: true,
@@ -380,15 +410,36 @@ export default function SnapController() {
     // native so the user can freely review any section or step back out
     // of a pinned area without fighting the snap animation.
 
+    /** True if a snap animation is *actually* running. `animatingRef`
+     *  is sometimes left stale on mobile when the GSAP tween's
+     *  autoKill cancels it without firing onInterrupt — this cross-
+     *  checks against GSAP itself so a stale flag can't permanently
+     *  block future gestures. */
+    const isSnapping = () => {
+      if (!animatingRef.current) return false;
+      if (gsap.isTweening(window)) return true;
+      // Flag is stale: tween already ended. Reset and report no animation.
+      animatingRef.current = false;
+      return false;
+    };
+
     const onWheel = (e: WheelEvent) => {
       if (disabledRef.current) return;
+      if (isNativeMobileScrollZone()) return;
       if (isInteractiveTarget(e.target, 'wheel')) return;
-      // Upward wheel: do nothing — native scroll handles it.
-      if (e.deltaY <= 0) return;
+      // Upward wheel: do nothing — native scroll handles it. Also kill
+      // any in-flight downward snap so it doesn't fight the user.
+      if (e.deltaY <= 0) {
+        if (isSnapping()) {
+          gsap.killTweensOf(window, 'scrollTo');
+          animatingRef.current = false;
+        }
+        return;
+      }
       if (e.deltaY < WHEEL_THRESHOLD) return;
       e.preventDefault();
       const now = performance.now();
-      if (animatingRef.current) return;
+      if (isSnapping()) return;
       if (now - lastInputRef.current < ANIM_COOLDOWN_MS) return;
       lastInputRef.current = now;
       snapDown();
@@ -403,10 +454,23 @@ export default function SnapController() {
 
     const onTouchStart = (e: TouchEvent) => {
       if (disabledRef.current) return;
+      if (isNativeMobileScrollZone()) {
+        touchActive = false;
+        touchIntent = null;
+        return;
+      }
       if (isInteractiveTarget(e.target, 'touch')) {
         touchActive = false;
         return;
       }
+      // A new touch always supersedes any in-flight snap. Kill the tween
+      // so it can't fight or stall the user. This also clears any stale
+      // animatingRef left over from an autoKill that didn't fire
+      // onInterrupt (a known mobile edge case).
+      if (gsap.isTweening(window)) {
+        gsap.killTweensOf(window, 'scrollTo');
+      }
+      animatingRef.current = false;
       touchActive = true;
       touchIntent = null;
       touchStartY = e.touches[0].clientY;
@@ -416,6 +480,11 @@ export default function SnapController() {
     const onTouchMove = (e: TouchEvent) => {
       if (disabledRef.current) return;
       if (!touchActive) return;
+      if (isNativeMobileScrollZone()) {
+        touchActive = false;
+        touchIntent = null;
+        return;
+      }
       const currentY = e.touches[0].clientY;
       const dy = touchStartY - currentY;
       if (touchIntent === null) {
@@ -429,20 +498,16 @@ export default function SnapController() {
       if (touchIntent === 'down' && e.cancelable) e.preventDefault();
     };
 
-    const onTouchEnd = (e: TouchEvent) => {
-      if (disabledRef.current) return;
-      if (!touchActive) return;
+    const finishTouch = (intent: 'down' | 'up' | null, endY?: number) => {
       touchActive = false;
-      const intent = touchIntent;
       touchIntent = null;
       // Upward swipe: we never intercepted it — nothing to do.
-      if (intent !== 'down') return;
-      if (animatingRef.current) return;
-      const endY = e.changedTouches[0].clientY;
+      if (intent !== 'down' || endY === undefined) return;
+      if (isSnapping()) return;
       const dy = touchStartY - endY;
       const dt = Math.max(1, performance.now() - touchStartT);
       const velocity = Math.abs(dy) / dt;
-      // Small/slow swipes: just settle at the closest stage so the page
+      // Small/slow swipes: settle at the closest stage so the page
       // doesn't end up mid-stage from the little bit of touch drift.
       if (
         dy < TOUCH_DIST_THRESHOLD &&
@@ -453,6 +518,21 @@ export default function SnapController() {
       }
       lastInputRef.current = performance.now();
       snapDown();
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (disabledRef.current) return;
+      if (!touchActive) return;
+      finishTouch(touchIntent, e.changedTouches[0]?.clientY);
+    };
+
+    const onTouchCancel = () => {
+      // iOS may cancel a touch when the system takes over (e.g. native
+      // scroll, refresh gesture, alert). Reset state so the next gesture
+      // starts cleanly.
+      if (!touchActive) return;
+      touchActive = false;
+      touchIntent = null;
     };
 
     const onKey = (e: KeyboardEvent) => {
@@ -470,8 +550,9 @@ export default function SnapController() {
         return;
       }
       if (disabledRef.current) return;
+      if (isNativeMobileScrollZone()) return;
       if (isInteractiveTarget(e.target, 'key')) return;
-      if (animatingRef.current) return;
+      if (isSnapping()) return;
       // Only downward keys snap. ArrowUp / PageUp / Home stay native so
       // the user can review upward content at their own pace.
       switch (e.key) {
@@ -498,6 +579,7 @@ export default function SnapController() {
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchCancel, { passive: true });
     window.addEventListener('keydown', onKey);
     window.addEventListener('etx:snap-to', onSnapToEvent as EventListener);
 
@@ -512,6 +594,7 @@ export default function SnapController() {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchCancel);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener(
         'etx:snap-to',

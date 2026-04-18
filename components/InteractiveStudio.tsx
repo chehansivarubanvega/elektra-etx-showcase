@@ -52,6 +52,29 @@ function CanvasVerticalTouchScroll({ active }: { active: boolean }) {
   return null;
 }
 
+/**
+ * R3F `Canvas` `className` applies to an outer div; the actual `<canvas>` keeps
+ * `pointer-events: auto` by default, so the model still steals touches. Toggle
+ * the GL canvas hit target explicitly when mobile “scroll page” mode is on.
+ */
+function CanvasPointerHitTarget({ interactable }: { interactable: boolean }) {
+  const gl = useThree((s) => s.gl);
+
+  useEffect(() => {
+    const el = gl.domElement;
+    if (interactable) {
+      el.style.removeProperty('pointer-events');
+    } else {
+      el.style.pointerEvents = 'none';
+    }
+    return () => {
+      el.style.removeProperty('pointer-events');
+    };
+  }, [interactable, gl]);
+
+  return null;
+}
+
 const InteractiveStudio = () => {
   const [interacted, setInteracted] = useState(false);
   const [showHelper, setShowHelper] = useState(true);
@@ -131,6 +154,10 @@ const InteractiveStudio = () => {
   };
 
   const orbitEnabled = !isMobileLayout || mobileOrbitOn;
+  /** Wrapper alone is not enough: the WebGL canvas defaults to `pointer-events: auto`,
+   *  so touches still hit the canvas and OrbitControls (even when `enabled={false}`)
+   *  can keep `touch-action: none` on the element — blocking vertical page scroll.
+   *  When orbit is off on mobile, disable hit-testing on the canvas and unmount controls. */
   const canvasPointerClass =
     isMobileLayout && !mobileOrbitOn ? 'pointer-events-none' : '';
 
@@ -154,8 +181,13 @@ const InteractiveStudio = () => {
               gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
               camera={{ position: [8, 4, 8], fov: 35 }}
               performance={{ min: 0.5 }}
-              className="h-full w-full cursor-grab active:cursor-grabbing"
+              className={
+                orbitEnabled
+                  ? 'h-full w-full min-h-0 cursor-grab active:cursor-grabbing'
+                  : 'h-full w-full min-h-0'
+              }
             >
+              <CanvasPointerHitTarget interactable={orbitEnabled} />
               <Suspense fallback={<CanvasLoader />}>
                 <ambientLight intensity={1.2} />
                 <directionalLight position={[8, 10, 6]} intensity={1.4} />
@@ -172,20 +204,24 @@ const InteractiveStudio = () => {
                   color="#000000"
                 />
 
-                <OrbitControls
-                  ref={controlsRef}
-                  enabled={orbitEnabled}
-                  enablePan={false}
-                  enableZoom={false}
-                  enableDamping
-                  dampingFactor={0.05}
-                  maxPolarAngle={Math.PI / 2}
-                  minPolarAngle={0}
-                  autoRotate={orbitEnabled && !interacted}
-                  autoRotateSpeed={0.5}
-                  onStart={handleInteractionStart}
-                />
-                <CanvasVerticalTouchScroll active={orbitEnabled} />
+                {orbitEnabled ? (
+                  <>
+                    <OrbitControls
+                      ref={controlsRef}
+                      enabled
+                      enablePan={false}
+                      enableZoom={false}
+                      enableDamping
+                      dampingFactor={0.05}
+                      maxPolarAngle={Math.PI / 2}
+                      minPolarAngle={0}
+                      autoRotate={!interacted}
+                      autoRotateSpeed={0.5}
+                      onStart={handleInteractionStart}
+                    />
+                    <CanvasVerticalTouchScroll active />
+                  </>
+                ) : null}
               </Suspense>
             </Canvas>
           </div>
