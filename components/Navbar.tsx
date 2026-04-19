@@ -26,8 +26,9 @@ export const Navbar = () => {
   const isPressRoute = pathname?.startsWith('/press') ?? false;
   const isArchiveRoute = pathname?.startsWith('/archive') ?? false;
   const isAboutRoute = pathname?.startsWith('/about') ?? false;
+  const isContactRoute = pathname?.startsWith('/contact') ?? false;
   const isLightSurface = isPressRoute || isArchiveRoute;
-  const {navigateToPress, navigateToAbout} = usePressTransition();
+  const {navigateToPress, navigateToAbout, navigateToContact} = usePressTransition();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [pastHero, setPastHero] = useState(false);
@@ -91,6 +92,10 @@ export const Navbar = () => {
     navigateToAbout(e);
   };
 
+  const onContactNav = (e: React.MouseEvent) => {
+    navigateToContact(e);
+  };
+
   const headerVariants = useMemo(
     () => ({
       expanded: {
@@ -136,6 +141,7 @@ export const Navbar = () => {
   const archiveActive = pathname === '/archive';
   const aboutActive = pathname === '/about';
   const preorderActive = pathname === '/preorder';
+  const contactActive = pathname === '/contact';
   const pressLinkColor = isLightSurface
     ? pressActive
       ? 'text-[#FF5722]'
@@ -150,6 +156,15 @@ export const Navbar = () => {
     ? `text-[#1A1A1A]/55 ${navHover}`
     : aboutActive
       ? 'text-[#FF6B00]'
+      : `${navMuted} ${navHover}`;
+  /** Contact: Performance-Orange (#FF5722) when active on either surface so
+   *  the underline + text color reads as a single brand glow on the page. */
+  const contactLinkColor = isLightSurface
+    ? contactActive
+      ? 'text-[#FF5722]'
+      : `text-[#1A1A1A]/55 ${navHover}`
+    : contactActive
+      ? 'text-[#FF5722]'
       : `${navMuted} ${navHover}`;
 
   return (
@@ -194,6 +209,23 @@ export const Navbar = () => {
             className={`navbar-item text-[10px] font-bold uppercase tracking-[0.3em] transition-colors duration-300 ${archiveLinkColor}`}
           >
             Archive
+          </Link>
+          <Link
+            href="/contact"
+            onClick={!isContactRoute ? onContactNav : undefined}
+            aria-current={contactActive ? 'page' : undefined}
+            className={`navbar-item relative text-[10px] font-bold uppercase tracking-[0.3em] transition-colors duration-300 ${contactLinkColor}`}
+          >
+            Contact
+            {contactActive && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-2 left-0 right-0 h-px bg-[#FF5722]"
+                style={{
+                  boxShadow: '0 0 10px rgba(255,87,34,0.85), 0 0 22px rgba(255,87,34,0.45)',
+                }}
+              />
+            )}
           </Link>
         </nav>
 
@@ -344,6 +376,27 @@ export const Navbar = () => {
                   }`}
                 >
                   Archive
+                </Link>
+                <Link
+                  href="/contact"
+                  onClick={(e) => {
+                    if (!isContactRoute) {
+                      onContactNav(e);
+                    }
+                    setMenuOpen(false);
+                  }}
+                  aria-current={contactActive ? 'page' : undefined}
+                  className={`navbar-item border-b py-4 text-lg font-bold uppercase tracking-[0.2em] transition-colors hover:text-[#FF5722] ${
+                    isLightSurface
+                      ? contactActive
+                        ? 'border-[#1A1A1A]/[0.08] text-[#FF5722]'
+                        : 'border-[#1A1A1A]/[0.08] text-[#1A1A1A]/90'
+                      : contactActive
+                        ? 'border-white/[0.08] text-[#FF5722]'
+                        : 'border-white/[0.08] text-white/90'
+                  }`}
+                >
+                  Contact
                 </Link>
                 <Link
                   href="/preorder"

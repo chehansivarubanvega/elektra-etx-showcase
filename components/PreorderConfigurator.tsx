@@ -1250,6 +1250,89 @@ export const PreorderConfigurator = () => {
           />
         ) : null}
       </AnimatePresence>
+
+      {/* Success overlay — appears once the canvas particle/light-speed beat
+          completes (`onLaunchComplete` → `launched=true`). Renders above the
+          black launch fade so the user gets a clear, full-screen confirmation
+          instead of just a small bottom strip. */}
+      <AnimatePresence>
+        {launched ? (
+          <motion.div
+            key="success-overlay"
+            role="status"
+            aria-live="polite"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            transition={{duration: 0.6, ease: [0.16, 1, 0.3, 1]}}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black px-6 text-center"
+          >
+            {/* Subtle radial bloom behind the headline */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 h-[80vmin] w-[80vmin] -translate-x-1/2 -translate-y-1/2 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(255,87,34,0.18) 0%, rgba(255,87,34,0.05) 40%, rgba(0,0,0,0) 70%)",
+                filter: "blur(36px)",
+              }}
+            />
+
+            <motion.span
+              initial={{opacity: 0, y: 8}}
+              animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.25}}
+              className="relative font-mono text-[10px] font-semibold uppercase tracking-[0.42em] text-[#FF5722] md:text-[11px]"
+            >
+              {"// allocation secured"}
+            </motion.span>
+
+            <motion.h2
+              initial={{opacity: 0, y: 24}}
+              animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.9, ease: [0.16, 1, 0.3, 1], delay: 0.45}}
+              className="relative mt-4 text-[clamp(2.5rem,9vw,6.5rem)] font-black uppercase leading-[0.95] tracking-tight text-white"
+            >
+              Pre Order Placed
+            </motion.h2>
+
+            <motion.div
+              initial={{opacity: 0, scaleX: 0}}
+              animate={{opacity: 1, scaleX: 1}}
+              transition={{duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.7}}
+              className="relative mt-5 h-px w-24 origin-center bg-gradient-to-r from-transparent via-[#FF5722] to-transparent"
+            />
+
+            <motion.p
+              initial={{opacity: 0, y: 12}}
+              animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.85}}
+              className="relative mt-5 max-w-md text-[13px] leading-relaxed text-white/65 md:text-[15px]"
+            >
+              Your ETX is reserved.{" "}
+              <span className="text-white">
+                {SWATCHES.find((s) => s.hex === color)?.label ?? color}
+              </span>
+              {" · "}
+              <span className="text-white">
+                {String(quantity).padStart(2, "0")} unit
+                {quantity === 1 ? "" : "s"}
+              </span>
+              . Confirmation on its way to{" "}
+              <span className="text-white break-all">{email || "your inbox"}</span>.
+            </motion.p>
+
+            <motion.div
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              transition={{duration: 0.6, ease: "easeOut", delay: 1.15}}
+              className="relative mt-10 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.36em] text-white/40"
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#5dffa6]" />
+              <span>Q3 2027 · Estimated handover</span>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </main>
   );
 };

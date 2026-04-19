@@ -27,8 +27,8 @@ const modules = [
       {label: 'Press', href: '/press'},
       {label: 'Archive', href: '/archive'},
       {label: 'About', href: '/about'},
-      {label: 'Technology', href: '#'},
-      {label: 'Contact', href: 'mailto:info@elektrateq.com'},
+      {label: 'Contact', href: '/contact'},
+      {label: 'Preorder', href: '/preorder'},
     ] as FooterItem[],
   },
   {
@@ -63,7 +63,7 @@ const Footer = () => {
   const pathname = usePathname();
   const isArchive = pathname?.startsWith('/archive') ?? false;
   const isLight = pathname?.startsWith('/press') || isArchive || false;
-  const {navigateToPress} = usePressTransition();
+  const {navigateToPress, navigateToContact} = usePressTransition();
   const accent = isLight ? ACCENT_LIGHT : ACCENT_DARK;
   const [time, setTime] = useState('');
 
@@ -105,11 +105,17 @@ const Footer = () => {
 
     if (internal) {
       const pressFromDark = item.href === '/press' && !isLight;
+      const contactFromDark = item.href === '/contact' && !isLight;
+      const onClick = pressFromDark
+        ? (e: React.MouseEvent) => navigateToPress(e)
+        : contactFromDark
+          ? (e: React.MouseEvent) => navigateToContact(e)
+          : undefined;
       return (
         <Link
           key={item.label}
           href={item.href}
-          onClick={pressFromDark ? (e) => navigateToPress(e) : undefined}
+          onClick={onClick}
           className={cn(linkBase, mutedCls)}
         >
           <span className={cn('transition-colors', chevron)}>›</span>

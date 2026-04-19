@@ -215,7 +215,11 @@ const InteractiveStudio = () => {
                       dampingFactor={0.05}
                       maxPolarAngle={Math.PI / 2}
                       minPolarAngle={0}
-                      autoRotate={!interacted}
+                      // Mobile: never auto-rotate the camera. The user opts
+                      // into 360° explicitly and should be the only thing
+                      // moving the model from there. Desktop keeps the
+                      // ambient idle spin until the first interaction.
+                      autoRotate={!interacted && !isMobileLayout}
                       autoRotateSpeed={0.5}
                       onStart={handleInteractionStart}
                     />
@@ -271,9 +275,6 @@ const InteractiveStudio = () => {
                       setMobileOrbitOn(false);
                       setInteracted(false);
                       setShowHelper(true);
-                      if (controlsRef.current) {
-                        controlsRef.current.autoRotate = true;
-                      }
                     }}
                     className="touch-manipulation rounded-xl border border-white/25 bg-white/[0.06] py-3 font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-white/90 transition-colors active:bg-white/10"
                   >

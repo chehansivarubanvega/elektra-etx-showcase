@@ -7,6 +7,7 @@ import gsap from 'gsap';
 type PressTransitionContextValue = {
   navigateToPress: (e: React.MouseEvent) => void;
   navigateToAbout: (e: React.MouseEvent) => void;
+  navigateToContact: (e: React.MouseEvent) => void;
 };
 
 const PressTransitionContext = createContext<PressTransitionContextValue | null>(null);
@@ -33,6 +34,35 @@ function runOpeningReveal(el: HTMLDivElement, x: number, y: number, r: number, o
       duration: 0.9,
       ease: 'power3.inOut',
       onComplete: onDone,
+    },
+  );
+}
+
+/** Black "Slide-up" panel — used for dark → dark route transitions
+ *  (eg. /about → /contact). Reads as a velocity slide rather than a wipe. */
+function runOpeningSlideUp(el: HTMLDivElement, onDone: () => void) {
+  gsap.killTweensOf(el);
+  gsap.set(el, {opacity: 1, pointerEvents: 'auto', yPercent: 100});
+  gsap.to(el, {
+    yPercent: 0,
+    duration: 0.7,
+    ease: 'power3.inOut',
+    onComplete: onDone,
+  });
+}
+
+function runClosingSlideUp(el: HTMLDivElement) {
+  gsap.killTweensOf(el);
+  gsap.fromTo(
+    el,
+    {yPercent: 0, opacity: 1, pointerEvents: 'auto'},
+    {
+      yPercent: -100,
+      duration: 0.75,
+      ease: 'power3.inOut',
+      onComplete: () => {
+        gsap.set(el, {pointerEvents: 'none', opacity: 0, clearProps: 'transform'});
+      },
     },
   );
 }
@@ -68,9 +98,12 @@ export function PressTransitionProvider({children}: {children: React.ReactNode})
 
   const pressOverlayRef = useRef<HTMLDivElement>(null);
   const aboutOverlayRef = useRef<HTMLDivElement>(null);
+  const contactOverlayRef = useRef<HTMLDivElement>(null);
 
   const pressPendingRef = useRef<PendingReveal | null>(null);
   const aboutPendingRef = useRef<PendingReveal | null>(null);
+  /** Boolean — slide-up doesn't need geometry, just a "play closing" flag. */
+  const contactPendingRef = useRef<boolean>(false);
 
   const prevPathRef = useRef<string | null>(null);
 
@@ -106,13 +139,29 @@ export function PressTransitionProvider({children}: {children: React.ReactNode})
     [router],
   );
 
+  const navigateToContact = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      const el = contactOverlayRef.current;
+      if (!el || typeof window === 'undefined') {
+        router.push('/contact');
+        return;
+      }
+      contactPendingRef.current = true;
+      runOpeningSlideUp(el, () => router.push('/contact'));
+    },
+    [router],
+  );
+
   useLayoutEffect(() => {
     const prev = prevPathRef.current;
     prevPathRef.current = pathname;
 
     const pressEl = pressOverlayRef.current;
     const aboutEl = aboutOverlayRef.current;
-    if (!pressEl || !aboutEl) return;
+    const contactEl = contactOverlayRef.current;
+    if (!pressEl || !aboutEl || !contactEl) return;
 
     /** Reset overlays if we are not currently on their target route. */
     if (!pathname.startsWith('/press')) {
@@ -124,6 +173,11 @@ export function PressTransitionProvider({children}: {children: React.ReactNode})
       gsap.killTweensOf(aboutEl);
       gsap.set(aboutEl, {pointerEvents: 'none', opacity: 0, clearProps: 'clipPath'});
       aboutPendingRef.current = null;
+    }
+    if (!pathname.startsWith('/contact')) {
+      gsap.killTweensOf(contactEl);
+      gsap.set(contactEl, {pointerEvents: 'none', opacity: 0, clearProps: 'transform'});
+      contactPendingRef.current = false;
     }
 
     /** Play the inverse (closing) reveal once arrived, only on first entry. */
@@ -142,9 +196,19 @@ export function PressTransitionProvider({children}: {children: React.ReactNode})
         aboutPendingRef.current = null;
       }
     }
+
+    if (pathname.startsWith('/contact') && !(prev && prev.startsWith('/contact'))) {
+      if (contactPendingRef.current) {
+        runClosingSlideUp(contactEl);
+        contactPendingRef.current = false;
+      }
+    }
   }, [pathname]);
 
-  const value = React.useMemo(() => ({navigateToPress, navigateToAbout}), [navigateToPress, navigateToAbout]);
+  const value = React.useMemo(
+    () => ({navigateToPress, navigateToAbout, navigateToContact}),
+    [navigateToPress, navigateToAbout, navigateToContact],
+  );
 
   return (
     <PressTransitionContext.Provider value={value}>
@@ -158,6 +222,12 @@ export function PressTransitionProvider({children}: {children: React.ReactNode})
         ref={aboutOverlayRef}
         aria-hidden
         className="pointer-events-none fixed inset-0 z-[200] bg-[#000000] opacity-0"
+      />
+      <div
+        ref={contactOverlayRef}
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[200] bg-[#000000] opacity-0"
+        style={{transform: 'translateY(100%)'}}
       />
     </PressTransitionContext.Provider>
   );

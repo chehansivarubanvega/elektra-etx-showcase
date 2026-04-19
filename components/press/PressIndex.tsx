@@ -97,8 +97,13 @@ export function PressIndex({articles}: PressIndexProps) {
           <PressHeroMegatype />
 
           <div className="relative z-10 flex min-h-[min(74vh,800px)] flex-col items-center justify-start pt-[min(7vh,52px)] md:min-h-[min(78vh,840px)] md:pt-[min(9vh,68px)]">
-            {/* Pull sketch up into megatype so lines + type share one plane (multiply shows type through “paper”) */}
-            <div className="relative isolate z-10 w-full max-w-[min(94vw,960px)] -mt-[min(11vh,92px)] px-1 md:-mt-[min(15vh,128px)] md:max-w-[min(90vw,1000px)] md:px-2">
+            {/* Mobile: push the sketch DOWN (positive top margin) so it sits
+                lower in the viewport and stops crowding the navbar — on
+                phones the megatype/sketch overlap reads as clutter rather
+                than a layered effect because there isn't enough horizontal
+                room. Desktop keeps the original negative pull-up so the
+                line-art still blends through the "Press / Press" megatype. */}
+            <div className="relative isolate z-10 w-full max-w-[min(94vw,960px)] mt-[min(6vh,52px)] px-1 md:-mt-[min(15vh,128px)] md:max-w-[min(90vw,1000px)] md:px-2">
               {/* Soft bloom — anchored to overlap band between type and drawing */}
               <div
                 aria-hidden

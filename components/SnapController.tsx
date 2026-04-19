@@ -45,7 +45,14 @@ type Stage = {
 const HERO_SUBSTAGES: { id: string; p: number; duration: number }[] = [
   { id: 'hero', p: 0, duration: 0.9 },
   { id: 'metrics', p: 0.22, duration: 1.25 },
-  { id: 'urban', p: 0.51, duration: 1.25 },
+  // Urban "Conquer the City" — landing position must sit *after* the
+  // `.urban-sidebar` fade-in AND the `.urban-text-stagger` reveal complete
+  // in the master timeline (≈ t=10.3s of an ~18s pinned timeline → p≈0.57)
+  // and *before* the sidebar starts exiting (t=11.3s → p≈0.63). We aim for
+  // the middle of that window so the headline, paragraph, and CTA are all
+  // fully visible when the auto-snap settles. (Was 0.51, which parked the
+  // user mid-fade with only the first stagger element on screen.)
+  { id: 'urban', p: 0.6, duration: 1.25 },
   // urban → charging covers a long 3D-only beat (no UI tweens during the
   // 2.2s "hold"). Stretch the snap a touch so the model has time to glide
   // across instead of getting whipped, and so the scrub buffer doesn't have

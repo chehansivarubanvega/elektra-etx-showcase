@@ -190,13 +190,16 @@ export const AboutPage = () => {
           </div>
         </div>
 
-        {/* Massive ABOUT word */}
+        {/* Massive ABOUT word.
+            Mobile: pinned to the top half so the model (which sits in the
+            bottom half on small screens) doesn't completely cover it.
+            Desktop: original behavior — centered behind the model. */}
         <div
           ref={aboutWordRef}
-          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center"
+          className="pointer-events-none absolute inset-x-0 top-[150px] z-10 flex justify-center md:inset-0 md:top-0 md:items-center"
         >
           <h1
-            className="select-none text-[clamp(8rem,32vw,28rem)] font-black uppercase leading-[0.82] tracking-[-0.06em] text-white"
+            className="select-none text-[clamp(4.5rem,22vw,28rem)] font-black uppercase leading-[0.82] tracking-[-0.06em] text-white md:text-[clamp(8rem,32vw,28rem)]"
             style={{
               fontFamily: FONT_DISPLAY,
               fontVariationSettings: '"wght" 900',
@@ -207,7 +210,10 @@ export const AboutPage = () => {
           </h1>
         </div>
 
-        {/* 3D scene — sits over the word, picks up the cursor */}
+        {/* 3D scene — sits over the word, picks up the cursor.
+            Mobile: confined to the bottom ~55% of the hero so the model
+            renders smaller in pixels and leaves the ABOUT wordmark room
+            to breathe up top. Desktop keeps full-bleed. */}
         <div
           ref={sceneWrapRef}
           onPointerEnter={() => setOverCanvas(true)}
@@ -216,7 +222,7 @@ export const AboutPage = () => {
             // Burst tracking flag: ensures rotation amp engages even without move.
             pointerRef.current.active = true;
           }}
-          className="absolute inset-0 z-20 h-full w-full"
+          className="absolute inset-x-0 bottom-0 z-20 h-[58%] w-full md:inset-0 md:h-full"
           style={{cursor: coarsePointer ? "auto" : "none"}}
         >
           {/* Drives the amplitude flag in PointerSample whenever overCanvas changes. */}

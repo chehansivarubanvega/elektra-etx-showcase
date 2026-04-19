@@ -11,6 +11,9 @@ import {
 
 const TOTAL_FRAMES = 19;
 const LAST_FRAME = TOTAL_FRAMES - 1;
+const MOBILE_MQ = "(max-width: 767px)";
+/** Single representative frame shown statically on mobile (no scrub). */
+const MOBILE_STATIC_FRAME = "/cargo_collection/19.webp";
 
 /**
  * Feature highlights — one list for mobile cards and desktop HUD tether cards.
@@ -76,6 +79,21 @@ const CargoSketchSection = () => {
   const [ready, setReady] = useState(false);
   const [shouldPreload, setShouldPreload] = useState(false);
   const [frameLabel, setFrameLabel] = useState("01");
+  /**
+   * Mobile devices skip the entire scroll-scrubbed canvas pipeline. The
+   * section becomes a normal, non-sticky stack of static content so vertical
+   * scroll behaves like ordinary page scroll instead of driving an animation.
+   */
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof globalThis.matchMedia === "undefined") return;
+    const mq = globalThis.matchMedia(MOBILE_MQ);
+    const sync = () => setIsMobile(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   /**
    * Scroll progress (0 → 1) driven directly by Motion's `useScroll`. This is
@@ -115,9 +133,6 @@ const CargoSketchSection = () => {
     [1, 0.12],
   );
 
-  // Progress bar
-  const progressBarWidth = useTransform(smoothFrame, [0, 1], ["0%", "100%"]);
-
   // Paragraph line reveal — five explicit transforms to respect rules-of-hooks
   const lineOpacity0 = useTransform(smoothFrame, [0.1, 0.22], [0, 1]);
   const lineOpacity1 = useTransform(smoothFrame, [0.19, 0.31], [0, 1]);
@@ -155,6 +170,7 @@ const CargoSketchSection = () => {
 
   /** Lazy preload the sequence only when the section nears the viewport. */
   useEffect(() => {
+    if (isMobile) return;
     if (!sectionRef.current) return;
     if (typeof IntersectionObserver === "undefined") {
       queueMicrotask(() => setShouldPreload(true));
@@ -174,10 +190,11 @@ const CargoSketchSection = () => {
     );
     io.observe(sectionRef.current);
     return () => io.disconnect();
-  }, []);
+  }, [isMobile]);
 
   /** Preload all 19 .webp frames. `ready` flips once every slot has resolved. */
   useEffect(() => {
+    if (isMobile) return;
     if (!shouldPreload) return;
     let cancelled = false;
 
@@ -204,7 +221,7 @@ const CargoSketchSection = () => {
     return () => {
       cancelled = true;
     };
-  }, [shouldPreload]);
+  }, [isMobile, shouldPreload]);
 
   // Scroll-to-frame pipeline is established via `useScroll` + `useSpring` above.
   // The outer `<section>` supplies 300vh of scroll, the inner `sticky top-0
@@ -213,6 +230,7 @@ const CargoSketchSection = () => {
 
   /** Canvas sequence renderer driven by the spring-smoothed frame index. */
   useEffect(() => {
+    if (isMobile) return;
     if (!ready || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: true });
@@ -288,7 +306,21 @@ const CargoSketchSection = () => {
       ro?.disconnect();
       unsub();
     };
-  }, [ready, smoothFrame]);
+  }, [isMobile, ready, smoothFrame]);
+
+  if (isMobile) {
+    return (
+      <section
+        ref={sectionRef}
+        id="cargo-versatility"
+        data-snap-stage="cargo"
+        data-snap-native-scroll-mobile="true"
+        className="relative w-full min-w-0 max-w-full overflow-x-clip bg-black text-white"
+      >
+        <MobileCargoStatic />
+      </section>
+    );
+  }
 
   return (
     <section
@@ -443,53 +475,6 @@ const CargoSketchSection = () => {
           </div>
         </div>
 
-        {/* ─── Mobile Hero Headline ──────────────────────────────────────── */}
-        <div className="pointer-events-none absolute left-5 right-5 top-[7vh] z-[18] md:hidden">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="h-1.5 w-1.5 shrink-0 bg-[#FF6B00]" />
-            <span className="text-[9px] font-bold uppercase tracking-[0.35em] text-[#FF6B00]">
-              Stage 04 · Cargo
-            </span>
-          </div>
-          <h2 className="relative font-black uppercase leading-[0.92] tracking-[-0.02em] text-[clamp(1.75rem,9.5vw,2.5rem)]">
-            <span aria-hidden className="block opacity-0">
-              {HEADLINE_LINES.map((l) => (
-                <span key={l} className="block">
-                  {l}
-                </span>
-              ))}
-            </span>
-
-            <motion.span
-              aria-hidden
-              className="absolute inset-0 block"
-              style={{
-                opacity: headlineStrokeOpacity,
-                color: "transparent",
-                WebkitTextStroke: "1px rgba(255,255,255,0.9)",
-              }}
-            >
-              {HEADLINE_LINES.map((l) => (
-                <span key={l} className="block">
-                  {l}
-                </span>
-              ))}
-            </motion.span>
-
-            <motion.span
-              aria-hidden
-              className="absolute inset-0 block text-[#FF6B00]"
-              style={{ opacity: headlineFillOpacity }}
-            >
-              {HEADLINE_LINES.map((l) => (
-                <span key={l} className="block">
-                  {l}
-                </span>
-              ))}
-            </motion.span>
-          </h2>
-        </div>
-
         {/* ─── Canvas Display Window (no HUD) ─────────────────────────────
             Desktop: centered; z below copy/callouts so the frame does not clip headline or narrative.
             Mobile: below headline; same shell class as the tether overlay for aligned % anchors. */}
@@ -622,74 +607,102 @@ const CargoSketchSection = () => {
           </div>
         </div>
 
-        {/* ─── Mobile feature highlights (below canvas) ───────────────────
-            Same scroll beats as desktop callouts, copy aimed at real buyers. */}
-        <div className="pointer-events-none absolute left-5 right-5 top-[66vh] z-[18] md:hidden">
-          <div className="mb-3">
-            <p className="text-[12px] font-semibold leading-tight text-white">
-              What you notice as it loads up
-            </p>
-            <p className="mt-0.5 text-[10px] leading-snug text-white/50">
-              These points appear while the sketch runs — scroll slowly to read
-              them.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            {FEATURE_HIGHLIGHTS.map((item) => (
-              <MobileFeatureHighlight
-                key={item.key}
-                item={item}
-                progress={smoothFrame}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* ─── Mobile Paragraph (compact, above the progress bar) ──────── */}
-        <div className="pointer-events-none absolute left-5 right-5 top-[82vh] z-[18] md:hidden"></div>
-
-        {/* ─── Mobile Progress Bar ─────────────────────────────────────── */}
       </div>
     </section>
   );
 };
 
-type FeatureHighlightItem = (typeof FEATURE_HIGHLIGHTS)[number];
+/**
+ * Mobile-only static layout. No scroll-driven canvas, no animated reveals —
+ * just a normal-flow stack of headline, a single representative sketch, the
+ * three feature cards, and the closing paragraph. Section height is whatever
+ * the content needs.
+ */
+const MobileCargoStatic = () => (
+  <div className="relative px-5 pb-16 pt-12">
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 opacity-40"
+      style={{
+        backgroundImage:
+          "linear-gradient(rgba(255,107,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,107,0,0.05) 1px, transparent 1px)",
+        backgroundSize: "60px 60px",
+        maskImage:
+          "radial-gradient(ellipse at center, black 30%, transparent 90%)",
+        WebkitMaskImage:
+          "radial-gradient(ellipse at center, black 30%, transparent 90%)",
+      }}
+    />
 
-type MobileFeatureHighlightProps = {
-  item: FeatureHighlightItem;
-  progress: ReturnType<typeof useSpring>;
-};
-
-/** Plain-language card; fades in on the same frame beat as the desktop HUD. */
-const MobileFeatureHighlight = ({
-  item,
-  progress,
-}: MobileFeatureHighlightProps) => {
-  const threshold = item.frame / LAST_FRAME;
-  const start = Math.max(0, threshold - 0.04);
-  const end = Math.min(1, threshold + 0.02);
-
-  const opacity = useTransform(progress, [start, end], [0, 1]);
-  const y = useTransform(progress, [start, end], [10, 0]);
-
-  return (
-    <motion.article
-      className="rounded-xl border border-white/[0.1] bg-black/50 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm"
-      style={{ opacity, y }}
-    >
-      <div className="mb-1 flex items-center gap-2">
-        <span className="h-1 w-4 rounded-full bg-[#FF6B00]" aria-hidden />
-        <h3 className="text-[12px] font-semibold leading-tight text-white">
-          {item.title}
-        </h3>
+    <header className="relative">
+      <div className="mb-2 flex items-center gap-2">
+        <div className="h-1.5 w-1.5 shrink-0 bg-[#FF6B00]" />
+        <span className="text-[9px] font-bold uppercase tracking-[0.35em] text-[#FF6B00]">
+          Stage 04 · Cargo
+        </span>
       </div>
-      <p className="pl-6 text-[11px] leading-[1.45] text-white/65">
-        {item.description}
+      <h2 className="font-black uppercase leading-[0.92] tracking-[-0.02em] text-[clamp(1.75rem,9.5vw,2.5rem)] text-[#FF6B00]">
+        {HEADLINE_LINES.map((l) => (
+          <span key={l} className="block">
+            {l}
+          </span>
+        ))}
+      </h2>
+    </header>
+
+    <figure className="relative mt-6 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#050505] shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(255,107,0,0.16) 0%, rgba(0,0,0,0) 65%)",
+        }}
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={MOBILE_STATIC_FRAME}
+        alt="ETX cargo configuration sketch"
+        loading="lazy"
+        decoding="async"
+        className="relative block h-auto w-full"
+      />
+    </figure>
+
+    <ul className="relative mt-6 flex flex-col gap-2.5">
+      {FEATURE_HIGHLIGHTS.map((item) => (
+        <li
+          key={item.key}
+          className="rounded-xl border border-white/[0.1] bg-black/50 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+        >
+          <div className="mb-1 flex items-center gap-2">
+            <span className="h-1 w-4 rounded-full bg-[#FF6B00]" aria-hidden />
+            <h3 className="text-[12px] font-semibold leading-tight text-white">
+              {item.title}
+            </h3>
+          </div>
+          <p className="pl-6 text-[11px] leading-[1.5] text-white/65">
+            {item.description}
+          </p>
+        </li>
+      ))}
+    </ul>
+
+    <div className="relative mt-7">
+      <div className="mb-3 flex items-center gap-3">
+        <span className="h-px w-10 bg-[#FF6B00]" />
+        <span className="text-[9px] font-bold uppercase tracking-[0.35em] text-[#FF6B00]">
+          Flexible · Fearless
+        </span>
+      </div>
+      <p className="text-[13px] leading-[1.7] text-white/85">
+        {PARAGRAPH_LINES.join(" ")}
       </p>
-    </motion.article>
-  );
-};
+    </div>
+  </div>
+);
+
+type FeatureHighlightItem = (typeof FEATURE_HIGHLIGHTS)[number];
 
 /**
  * Desktop HUD — same plain-language copy as mobile, tethered to the sketch

@@ -50,12 +50,14 @@ export default function Home() {
           // 0.8 - 1.0: Daylight
           scrollData.current.hero = gsap.utils.clamp(0, 1, p * 5);
           scrollData.current.metrics = gsap.utils.clamp(0, 1, (p - 0.2) * 5);
-          // SnapController pins "urban" at ~p=0.46 (see HERO_SUBSTAGES). A linear
-          // (p-0.4)*5 map only yields ~0.3 there, so the 3D beat never reached its
-          // settled pose. Ramp urban to 1 across [0.4, 0.46] and keep the wider
-          // plateau through the rest of the urban scroll window.
+          // SnapController pins "urban" at p=0.60 (see HERO_SUBSTAGES) so the
+          // landing position falls inside the readable window for the
+          // `.urban-sidebar` text card. The model needs to be in its settled
+          // urban pose well before that — keep the steeper ramp so urban
+          // reaches 1 by ~p=0.5, giving the camera a calm beat while the
+          // text staggers in.
           const urbanLinear = (p - 0.4) * 5;
-          const urbanSnapRamp = (p - 0.4) / 0.06;
+          const urbanSnapRamp = (p - 0.4) / 0.1;
           scrollData.current.urban = gsap.utils.clamp(
             0,
             1,
@@ -225,9 +227,13 @@ export default function Home() {
           style={{ willChange: 'opacity' }}
         />
 
-        {/* Background "ETX" Text — looming 3D wordmark */}
+        {/* Background "ETX" Text — looming 3D wordmark.
+            Mobile uses a deeper top inset (≈26vh) so the wordmark sits
+            below the navbar / HUD strip instead of crowding it. Desktop
+            keeps its existing 15vh because the wider viewport gives the
+            type more room and the 3D vehicle parks lower in frame. */}
         <div
-          className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[15vh] pointer-events-none z-0"
+          className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[26vh] sm:pt-[20vh] md:pt-[15vh] pointer-events-none z-0"
           style={{ perspective: '1400px', perspectiveOrigin: '50% 80%' }}
         >
           <h1
