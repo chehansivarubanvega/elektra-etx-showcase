@@ -28,10 +28,17 @@ export type ContactSceneHandle = {
   pulse: () => void;
 };
 
+/** Two distinct framings — desktop sits in a 50vw fixed column; mobile lives in
+ *  a stacked hero where the canvas is portrait-ish. We pull the camera back and
+ *  shrink the model so the silhouette actually fills the frame on small screens.
+ */
+type Framing = "desktop" | "mobile";
+
 type ModelProps = Readonly<{
   pointerRef: ContactPointerRef;
   /** Bridges the imperative pulse signal into the per-frame loop without rerenders. */
   pulseStateRef: React.MutableRefObject<{t: number; firing: boolean}>;
+  framing: Framing;
 }>;
 
 /**
@@ -40,10 +47,12 @@ type ModelProps = Readonly<{
  * — Pointer X → very subtle yaw parallax for liveness.
  * — Emissive intensity tracks pointer Y plus a transient "pulse" envelope.
  */
-function ContactModel({pointerRef, pulseStateRef}: ModelProps) {
+function ContactModel({pointerRef, pulseStateRef, framing}: ModelProps) {
   const {scene} = useGLTF(MODEL_PATH);
 
-  /** Clone, normalize, capture all materials so we can drive emissive globally. */
+  /** Clone, normalize, capture all materials so we can drive emissive globally.
+   *  TARGET_SIZE is chosen per framing so the silhouette consistently fills the
+   *  visible frustum on desktop (wide) AND mobile (taller, narrower viewport). */
   const {cloned, emissiveMaterials} = useMemo(() => {
     const clone = scene.clone(true);
     const mats: THREE.MeshStandardMaterial[] = [];
@@ -55,24 +64,23 @@ function ContactModel({pointerRef, pulseStateRef}: ModelProps) {
       mesh.receiveShadow = true;
       mesh.frustumCulled = true;
 
+      /** Clone the original material AS-IS (preserves color, maps, type — works
+       *  for MeshStandardMaterial AND MeshPhysicalMaterial). Then layer our
+       *  brand-orange emissive on top so we never destroy the model's PBR look.
+       *  Only standard-family materials support `emissive`/`emissiveIntensity`,
+       *  so non-standard materials are simply cloned and skipped for emissive.
+       */
       const wrap = (m: THREE.Material): THREE.Material => {
-        // Promote to standard so emissive control is uniform across the model.
-        if (m instanceof THREE.MeshStandardMaterial) {
-          const c = m.clone();
+        const c = m.clone();
+        if (
+          c instanceof THREE.MeshStandardMaterial ||
+          c instanceof THREE.MeshPhysicalMaterial
+        ) {
           c.emissive = new THREE.Color("#FF5722");
           c.emissiveIntensity = 0;
           mats.push(c);
-          return c;
         }
-        const fallback = new THREE.MeshStandardMaterial({
-          color: "#1a1a1a",
-          metalness: 0.6,
-          roughness: 0.35,
-          emissive: new THREE.Color("#FF5722"),
-          emissiveIntensity: 0,
-        });
-        mats.push(fallback);
-        return fallback;
+        return c;
       };
 
       if (Array.isArray(mesh.material)) {
@@ -82,12 +90,14 @@ function ContactModel({pointerRef, pulseStateRef}: ModelProps) {
       }
     });
 
-    /** Normalize size so the shot reads as a consistent "macro" framing. */
+    /** Normalize size — desktop reads as a "macro" detail shot at ~5.4 units;
+     *  mobile slightly smaller (~4.6) so the whole silhouette fits the portrait
+     *  frame with breathing room for the HUD overlays. */
     const box = new THREE.Box3().setFromObject(clone);
     const size = new THREE.Vector3();
     box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
-    const TARGET_SIZE = 5.4;
+    const TARGET_SIZE = framing === "mobile" ? 4.6 : 5.4;
     if (maxDim > 0) clone.scale.multiplyScalar(TARGET_SIZE / maxDim);
 
     const centered = new THREE.Box3().setFromObject(clone);
@@ -96,7 +106,7 @@ function ContactModel({pointerRef, pulseStateRef}: ModelProps) {
     clone.position.sub(center);
 
     return {cloned: clone, emissiveMaterials: mats};
-  }, [scene]);
+  }, [scene, framing]);
 
   const groupRef = useRef<THREE.Group>(null);
   const tiltRef = useRef<THREE.Group>(null);
@@ -115,23 +125,33 @@ function ContactModel({pointerRef, pulseStateRef}: ModelProps) {
     const dt = Math.min(delta, 0.05);
     const {nx, ny, active} = pointerRef.current;
 
+    state.current.idleT += dt;
+
+    /** Mobile gets a slow auto-yaw + a slight breathing tilt when no touch is
+     *  active — without it, the model just sits motionless on phones (because
+     *  pointermove doesn't fire without a finger down). */
+    const isMobile = framing === "mobile";
+    const idleYaw = isMobile && !active ? Math.sin(state.current.idleT * 0.32) * 0.55 : 0;
+    const idleTilt = isMobile && !active ? Math.sin(state.current.idleT * 0.21) * 0.06 : 0;
+
     /** Y-axis is the lead — pull head down/up as cursor moves vertically. */
     const yAmp = active ? 0.9 : 0.55;
     const xAmp = active ? 0.32 : 0.18;
-    const targetX = BASE_X_ROTATION - ny * yAmp;
-    const targetY = BASE_Y_ROTATION + nx * xAmp;
+    const targetX = BASE_X_ROTATION - ny * yAmp + idleTilt;
+    const targetY = BASE_Y_ROTATION + nx * xAmp + idleYaw;
 
     const LAMBDA = active ? 4.2 : 2.8;
     state.current.rotY = THREE.MathUtils.damp(state.current.rotY, targetY, LAMBDA, dt);
     state.current.rotX = THREE.MathUtils.damp(state.current.rotX, targetX, LAMBDA, dt);
 
-    state.current.idleT += dt;
     state.current.floatY = Math.sin(state.current.idleT * 0.7) * 0.05;
 
     /** Glow envelope:
      *   base   = brighter the higher the cursor sits (ny near +1).
      *   pulse  = transient burst when `pulse()` is invoked from the form.
-     *   total clamps to [0, ~3.4] so we don't blow out the tone-mapper.
+     *   On mobile we keep a soft "breathing" base so the emissive accents
+     *   are always perceptible without requiring a touch event.
+     *   Total clamps to [0, ~3.4] so we don't blow out the tone-mapper.
      */
     const pulseS = pulseStateRef.current;
     if (pulseS.firing) {
@@ -148,8 +168,16 @@ function ContactModel({pointerRef, pulseStateRef}: ModelProps) {
         2.6
       : 0;
 
-    const cursorGlow = active ? THREE.MathUtils.clamp((ny + 1) * 0.5, 0, 1) : 0.05;
-    const targetGlow = cursorGlow * 0.85 + pulseEnv;
+    let baseGlow: number;
+    if (active) {
+      baseGlow = THREE.MathUtils.clamp((ny + 1) * 0.5, 0, 1);
+    } else if (isMobile) {
+      // Soft 0.18 → 0.45 breathing on mobile so the orange always reads.
+      baseGlow = 0.32 + Math.sin(state.current.idleT * 1.1) * 0.13;
+    } else {
+      baseGlow = 0.05;
+    }
+    const targetGlow = baseGlow * 0.85 + pulseEnv;
     state.current.glow = THREE.MathUtils.damp(state.current.glow, targetGlow, 12, dt);
 
     tiltRef.current.rotation.y = state.current.rotY;
@@ -180,6 +208,8 @@ type SceneProps = Readonly<{
   pointerRef: ContactPointerRef;
   /** Imperative handle the form uses to trigger the pulse on submit. */
   handleRef: React.Ref<ContactSceneHandle>;
+  /** Adjusts camera + model size for the desktop column vs. the mobile hero. */
+  framing?: Framing;
 }>;
 
 /** Bridges the imperative pulse() handle into the per-frame state. */
@@ -203,8 +233,11 @@ function PulseBridge({
  * Fixed full-bleed canvas designed to live in the left column of the Contact
  * page (or the mobile hero). Uses an HDR studio environment so the macro detail
  * picks up plausible reflections regardless of the orange emissive load.
+ *
+ * The desktop framing is tight + cinematic; the mobile framing pulls the
+ * camera back and centers it so the silhouette reads on a portrait viewport.
  */
-export const ContactScene = ({pointerRef, handleRef}: SceneProps) => {
+export const ContactScene = ({pointerRef, handleRef, framing = "desktop"}: SceneProps) => {
   const pulseStateRef = useRef({t: 0, firing: false});
 
   /** Mark inactive when the tab is hidden — keeps the GPU quiet on background tabs. */
@@ -217,20 +250,29 @@ export const ContactScene = ({pointerRef, handleRef}: SceneProps) => {
     return () => document.removeEventListener("visibilitychange", onVis);
   }, [pointerRef]);
 
+  /** Camera tuned per framing:
+   *   desktop — slightly off-axis ¾ macro shot
+   *   mobile  — centered + pulled back, wider FOV so portrait crop still
+   *             frames the whole vehicle without cropping panels. */
+  const cameraConfig =
+    framing === "mobile"
+      ? {position: [0, 0.3, 11] as [number, number, number], fov: 36}
+      : {position: [0.4, 0.6, 8.6] as [number, number, number], fov: 28};
+
   return (
     <Canvas
       dpr={[1, 1.8]}
       shadows
-      camera={{position: [0.4, 0.6, 8.6], fov: 28}}
+      camera={cameraConfig}
       gl={{
         antialias: true,
         powerPreference: "high-performance",
         alpha: true,
         toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.05,
+        toneMappingExposure: framing === "mobile" ? 1.12 : 1.05,
       }}
     >
-      <ambientLight intensity={0.32} />
+      <ambientLight intensity={framing === "mobile" ? 0.45 : 0.32} />
       <directionalLight
         position={[5.5, 7.5, 6]}
         intensity={2.2}
@@ -247,7 +289,7 @@ export const ContactScene = ({pointerRef, handleRef}: SceneProps) => {
 
       <Suspense fallback={null}>
         <PulseBridge handleRef={handleRef} pulseStateRef={pulseStateRef} />
-        <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} />
+        <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} framing={framing} />
         <Environment files="/hdr/studio_small_03_1k.hdr" />
         <ContactShadows
           position={[0, -2.5, 0]}

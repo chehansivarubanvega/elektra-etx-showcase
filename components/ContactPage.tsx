@@ -34,6 +34,28 @@ export const ContactPage = () => {
 
   const [overCanvas, setOverCanvas] = useState(false);
 
+  /** Coarse pointer / mobile flag — toggles layout, scene framing, and which
+   *  interaction (hover vs drag) drives the model. */
+  const [isMobile, setIsMobile] = useState(false);
+  const [coarsePointer, setCoarsePointer] = useState(false);
+
+  useEffect(() => {
+    if (typeof globalThis.window === "undefined") return;
+    const mqMobile = globalThis.window.matchMedia("(max-width: 1023px)");
+    const mqCoarse = globalThis.window.matchMedia("(pointer: coarse)");
+    const update = () => {
+      setIsMobile(mqMobile.matches);
+      setCoarsePointer(mqCoarse.matches);
+    };
+    update();
+    mqMobile.addEventListener("change", update);
+    mqCoarse.addEventListener("change", update);
+    return () => {
+      mqMobile.removeEventListener("change", update);
+      mqCoarse.removeEventListener("change", update);
+    };
+  }, []);
+
   /* ─── Form state ─────────────────────────────────────────────────────── */
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -60,10 +82,14 @@ export const ContactPage = () => {
   const nodesRef = useRef<HTMLDivElement>(null);
 
   /* ─────────────────────────────────────────────────────────────────────
-   * Pointer tracking — single global listener, normalized for the scene.
+   * Pointer tracking — fine pointers (mouse/trackpad) drive the model with
+   * a single global hover listener; coarse pointers (touch) get a drag-only
+   * model on the canvas section so finger swipes rotate the vehicle without
+   * blocking page scroll outside the canvas.
    * ─────────────────────────────────────────────────────────────────── */
   useEffect(() => {
     if (typeof globalThis.window === "undefined") return;
+    if (coarsePointer) return;
     const onMove = (e: MouseEvent) => {
       const w = globalThis.window.innerWidth;
       const h = globalThis.window.innerHeight;
@@ -72,7 +98,49 @@ export const ContactPage = () => {
     };
     globalThis.window.addEventListener("pointermove", onMove, {passive: true});
     return () => globalThis.window.removeEventListener("pointermove", onMove);
-  }, []);
+  }, [coarsePointer]);
+
+  /** Touch-drag interaction — registered against the canvas section ref so the
+   *  rest of the page scrolls normally on touch devices. Builds nx/ny from the
+   *  drag delta relative to the section bounds and sets `active` while held. */
+  const canvasSectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (typeof globalThis.window === "undefined") return;
+    if (!coarsePointer) return;
+    const el = canvasSectionRef.current;
+    if (!el) return;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      pointerRef.current.active = true;
+      setOverCanvas(true);
+      const rect = el.getBoundingClientRect();
+      pointerRef.current.nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerRef.current.ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!pointerRef.current.active) return;
+      const rect = el.getBoundingClientRect();
+      pointerRef.current.nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerRef.current.ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+    };
+    const onPointerEnd = () => {
+      pointerRef.current.active = false;
+      setOverCanvas(false);
+    };
+
+    el.addEventListener("pointerdown", onPointerDown, {passive: true});
+    globalThis.window.addEventListener("pointermove", onPointerMove, {passive: true});
+    globalThis.window.addEventListener("pointerup", onPointerEnd, {passive: true});
+    globalThis.window.addEventListener("pointercancel", onPointerEnd, {passive: true});
+
+    return () => {
+      el.removeEventListener("pointerdown", onPointerDown);
+      globalThis.window.removeEventListener("pointermove", onPointerMove);
+      globalThis.window.removeEventListener("pointerup", onPointerEnd);
+      globalThis.window.removeEventListener("pointercancel", onPointerEnd);
+    };
+  }, [coarsePointer]);
 
   /* ─────────────────────────────────────────────────────────────────────
    * Page entrance — GSAP "slide-up" reveal driven from layout-effect.
@@ -154,8 +222,11 @@ export const ContactPage = () => {
 
   /* ─────────────────────────────────────────────────────────────────────
    * Magnetic email — moves toward cursor when in proximity, then snaps back.
+   * Skipped on coarse pointers — without a hover state the effect would jitter
+   * the element during page scroll on touch devices.
    * ─────────────────────────────────────────────────────────────────── */
   useEffect(() => {
+    if (coarsePointer) return;
     const el = emailWrapRef.current;
     if (!el || typeof globalThis.window === "undefined") return;
 
@@ -179,7 +250,7 @@ export const ContactPage = () => {
       globalThis.window.removeEventListener("pointermove", onMove);
       gsap.killTweensOf(el);
     };
-  }, []);
+  }, [coarsePointer]);
 
   const onCopyEmail = useCallback(async () => {
     try {
@@ -206,76 +277,138 @@ export const ContactPage = () => {
       >
         {/* ============================================================
             LEFT — TECHNICAL TWIN (3D macro view)
-            On desktop: fixed full-height column (50vw).
-            On mobile: hero-style canvas at the top (~58vh).
+            On desktop (lg+): fixed full-height column (50vw).
+            On mobile/tablet: stacks at top as a 70vh hero with a corner-
+            ticked viewport frame, swipe-to-rotate, and a more compact HUD.
         ============================================================ */}
         <section
           aria-label="Technical twin"
-          onPointerEnter={() => {
-            setOverCanvas(true);
-            pointerRef.current.active = true;
-          }}
-          onPointerLeave={() => {
-            setOverCanvas(false);
-            pointerRef.current.active = false;
-          }}
-          className="relative h-[58vh] min-h-[420px] w-full overflow-hidden border-b border-white/[0.06] bg-[#050505] lg:fixed lg:left-0 lg:top-0 lg:h-screen lg:w-1/2 lg:border-b-0 lg:border-r"
+          ref={canvasSectionRef}
+          onPointerEnter={
+            coarsePointer
+              ? undefined
+              : () => {
+                  setOverCanvas(true);
+                  pointerRef.current.active = true;
+                }
+          }
+          onPointerLeave={
+            coarsePointer
+              ? undefined
+              : () => {
+                  setOverCanvas(false);
+                  pointerRef.current.active = false;
+                }
+          }
+          className="relative h-[70vh] min-h-[440px] w-full overflow-hidden border-b border-white/[0.06] bg-[#050505] lg:fixed lg:left-0 lg:top-0 lg:h-screen lg:w-1/2 lg:border-b-0 lg:border-r"
+          style={
+            coarsePointer
+              ? {touchAction: "pan-y", WebkitUserSelect: "none", userSelect: "none"}
+              : undefined
+          }
         >
-          {/* Subtle radial vignette + brand wash so the canvas reads as
-              a "studio" detail shot rather than just a floating model. */}
+          {/* Brand wash + edge-fade so the canvas reads as a "studio" detail
+              shot rather than just a floating model on flat black. */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_60%_55%_at_55%_55%,rgba(255,87,34,0.10),transparent_60%)]"
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_55%,rgba(255,87,34,0.14),transparent_60%)] lg:bg-[radial-gradient(ellipse_60%_55%_at_55%_55%,rgba(255,87,34,0.10),transparent_60%)]"
           />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,#000_0%,transparent_18%,transparent_82%,#000_100%)]"
           />
 
-          <ContactScene pointerRef={pointerRef} handleRef={sceneHandleRef} />
+          <ContactScene
+            pointerRef={pointerRef}
+            handleRef={sceneHandleRef}
+            framing={isMobile ? "mobile" : "desktop"}
+          />
+
+          {/* Mobile-only "viewport" corner ticks — frames the canvas as a
+              technical instrument and visually anchors the model in space. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-3 z-10 lg:hidden"
+          >
+            <CornerTicks />
+          </div>
 
           {/* HUD overlay — Lat/Long + chapter label */}
           <div className="pointer-events-none absolute inset-0 z-10">
-            <div className="flex h-full flex-col justify-between p-5 sm:p-7">
+            <div className="flex h-full flex-col justify-between p-4 sm:p-7">
               {/* Top bar */}
-              <div className="flex items-start justify-between text-white/55">
-                <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.32em]">
+              <div className="flex items-start justify-between gap-3 text-white/55">
+                <div
+                  className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.32em]"
+                  style={{fontFamily: FONT_MONO}}
+                >
                   <span className="inline-block h-2 w-2 rounded-full" style={{backgroundColor: ACCENT}} />
                   <span>{"// chapter_05 · contact"}</span>
                 </div>
-                <div className="hidden font-mono text-[9px] uppercase tracking-[0.32em] sm:block">
+                <div
+                  className="hidden font-mono text-[9px] uppercase tracking-[0.32em] sm:block"
+                  style={{fontFamily: FONT_MONO}}
+                >
                   CAM · MACRO_REAR_QUARTER
                 </div>
               </div>
 
-              {/* Bottom HUD: coordinates */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Bottom HUD: coordinates.
+                  Mobile: stacked compact, single column at viewport bottom.
+                  Desktop: 2-up grid with full label/value pairs. */}
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-2">
                 {HUD_COORDS.map((c) => (
-                  <HudCoord key={c.label} label={c.label} lat={c.lat} lon={c.lon} />
+                  <HudCoord
+                    key={c.label}
+                    label={c.label}
+                    lat={c.lat}
+                    lon={c.lon}
+                    compact={isMobile}
+                  />
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Tiny, persistent crosshair tick — subtle "instrument" detail */}
+          {/* Center crosshair — desktop only (clutters the small portrait frame) */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+            className="pointer-events-none absolute left-1/2 top-1/2 z-10 hidden -translate-x-1/2 -translate-y-1/2 lg:block"
           >
             <div className="h-[14px] w-px bg-white/15" />
             <div className="absolute left-1/2 top-1/2 h-px w-[14px] -translate-x-1/2 -translate-y-1/2 bg-white/15" />
           </div>
 
-          {/* Cursor hint — only on fine pointers, fades when not over the canvas */}
+          {/* Interaction hint — copy switches per input mode (cursor vs touch).
+              Sits above the bottom HUD on mobile so it never collides with it. */}
           <div
             aria-hidden="true"
-            className={`pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 font-mono text-[9px] uppercase tracking-[0.4em] transition-opacity duration-300 ${
-              overCanvas ? "text-[#FF5722] opacity-100" : "text-white/40 opacity-90"
+            className={`pointer-events-none absolute bottom-[88px] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-white/[0.08] bg-black/55 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.32em] backdrop-blur-md transition-opacity duration-300 sm:tracking-[0.4em] lg:bottom-6 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none ${
+              overCanvas ? "text-[#FF5722] opacity-100" : "text-white/55 opacity-95"
             }`}
             style={{fontFamily: FONT_MONO}}
           >
-            ↕ MOVE CURSOR · MODULATE EMISSION
+            {coarsePointer
+              ? "↻ DRAG TO ROTATE · TAP TO PULSE"
+              : "↕ MOVE CURSOR · MODULATE EMISSION"}
           </div>
+
+          {/* Mobile scroll affordance — small indicator that more content is
+              below the canvas. Fades after the user scrolls a bit. */}
+          {isMobile && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1 lg:hidden"
+            >
+              <span
+                className="font-mono text-[8px] uppercase tracking-[0.4em] text-white/40"
+                style={{fontFamily: FONT_MONO}}
+              >
+                Scroll
+              </span>
+              <span className="block h-[18px] w-px bg-gradient-to-b from-white/45 to-transparent" />
+            </div>
+          )}
         </section>
 
         {/* ============================================================
@@ -283,27 +416,29 @@ export const ContactPage = () => {
         ============================================================ */}
         <section
           aria-label="Inquiry system"
-          className="relative z-10 ml-auto w-full bg-[#000000] px-6 pb-28 pt-16 sm:px-10 lg:w-1/2 lg:px-12 lg:pb-32 lg:pt-32"
+          className="relative z-10 ml-auto w-full bg-[#000000] px-5 pb-24 pt-12 sm:px-10 sm:pt-16 lg:w-1/2 lg:px-12 lg:pb-32 lg:pt-32"
         >
           {/* Eyebrow */}
-          <div className="contact-node mb-8 flex items-center gap-3">
-            <span className="h-px w-10" style={{backgroundColor: ACCENT}} />
+          <div className="contact-node mb-6 flex items-center gap-3 sm:mb-8">
+            <span className="h-px w-8 sm:w-10" style={{backgroundColor: ACCENT}} />
             <span
-              className="font-mono text-[10px] uppercase tracking-[0.42em]"
+              className="font-mono text-[9px] uppercase tracking-[0.36em] sm:text-[10px] sm:tracking-[0.42em]"
               style={{color: ACCENT, fontFamily: FONT_MONO}}
             >
               {"// 05 · transmission"}
             </span>
           </div>
 
-          {/* Massive outlined headline */}
+          {/* Massive outlined headline.
+              Mobile clamp goes wider in vw so the type fills the narrow column;
+              the `lg:` clamp keeps the desktop scale unchanged. */}
           <h1
             ref={headerRef}
             aria-label="Get in touch"
-            className="select-none text-balance text-[clamp(3.25rem,11vw,9rem)] font-black uppercase leading-[0.85] tracking-[-0.045em]"
+            className="select-none text-balance text-[clamp(2.75rem,16vw,5.25rem)] font-black uppercase leading-[0.86] tracking-[-0.04em] sm:text-[clamp(3.25rem,11vw,9rem)] sm:leading-[0.85] sm:tracking-[-0.045em]"
             style={{
               fontFamily: FONT_DISPLAY,
-              WebkitTextStroke: "1.4px rgba(255,255,255,0.85)",
+              WebkitTextStroke: "1.2px rgba(255,255,255,0.85)",
               color: "transparent",
             }}
           >
@@ -311,7 +446,7 @@ export const ContactPage = () => {
             <span
               className="block"
               style={{
-                WebkitTextStroke: `1.4px ${ACCENT}`,
+                WebkitTextStroke: `1.2px ${ACCENT}`,
                 color: "transparent",
               }}
             >
@@ -319,7 +454,7 @@ export const ContactPage = () => {
             </span>
           </h1>
 
-          <div ref={nodesRef} className="mt-16 flex flex-col gap-12 sm:gap-14">
+          <div ref={nodesRef} className="mt-10 flex flex-col gap-10 sm:mt-16 sm:gap-14">
             {/* ─── HEADQUARTERS ─────────────────────────────────────── */}
             <ContactNode index="01" title="Headquarters">
               <p className="text-[clamp(1.05rem,1.45vw,1.3rem)] leading-[1.5] text-white/85">
@@ -338,10 +473,10 @@ export const ContactPage = () => {
             <ContactNode index="02" title="Direct Lines">
               <a
                 href="tel:+94114222504"
-                className="group inline-flex items-baseline gap-3 transition-colors hover:text-[#FF5722]"
+                className="group inline-flex flex-wrap items-baseline gap-x-3 gap-y-1 transition-colors hover:text-[#FF5722]"
               >
                 <span
-                  className="text-[clamp(2rem,4.6vw,3.6rem)] font-bold leading-[0.95] tracking-[-0.025em] text-white transition-colors group-hover:text-[#FF5722]"
+                  className="text-[clamp(1.6rem,8vw,2.4rem)] font-bold leading-[0.95] tracking-[-0.025em] text-white transition-colors group-hover:text-[#FF5722] sm:text-[clamp(2rem,4.6vw,3.6rem)]"
                   style={{fontFamily: FONT_DISPLAY}}
                 >
                   +94 11 422 2504
@@ -353,14 +488,17 @@ export const ContactPage = () => {
                   ↗
                 </span>
               </a>
-              <p className="mt-3 max-w-md font-mono text-[10px] uppercase tracking-[0.28em] text-white/40">
+              <p
+                className="mt-3 max-w-md font-mono text-[9px] uppercase tracking-[0.26em] text-white/40 sm:text-[10px] sm:tracking-[0.28em]"
+                style={{fontFamily: FONT_MONO}}
+              >
                 Mon — Fri · 09:00 → 18:00 (Asia/Colombo)
               </p>
             </ContactNode>
 
             {/* ─── EMAIL — magnetic + copy ──────────────────────────── */}
             <ContactNode index="03" title="Email">
-              <div className="relative inline-flex items-center gap-3">
+              <div className="group relative inline-flex max-w-full items-center gap-3">
                 <a
                   ref={emailWrapRef}
                   href="mailto:info@elektrateq.com"
@@ -368,11 +506,11 @@ export const ContactPage = () => {
                     e.preventDefault();
                     onCopyEmail();
                   }}
-                  className="group relative inline-flex items-baseline gap-3 will-change-transform"
+                  className="relative inline-flex max-w-full items-baseline gap-3 will-change-transform"
                   aria-label="Copy email address to clipboard"
                 >
                   <span
-                    className="text-[clamp(1.5rem,3vw,2.4rem)] font-semibold leading-[1] tracking-[-0.02em] text-white transition-colors group-hover:text-[#FF5722]"
+                    className="block max-w-full break-all text-[clamp(1.15rem,5.6vw,1.7rem)] font-semibold leading-[1.1] tracking-[-0.015em] text-white transition-colors group-hover:text-[#FF5722] sm:break-normal sm:text-[clamp(1.5rem,3vw,2.4rem)] sm:leading-[1] sm:tracking-[-0.02em]"
                     style={{fontFamily: FONT_DISPLAY}}
                   >
                     info@elektrateq.com
@@ -384,11 +522,14 @@ export const ContactPage = () => {
                   />
                 </a>
 
-                {/* Tooltip — appears above the email on hover, swaps copy on success. */}
+                {/* Tooltip — appears above the email on hover/focus or after a copy.
+                    On coarse pointers (no hover) we only show it after copying. */}
                 <span
                   aria-hidden={!copied}
-                  className={`pointer-events-none absolute -top-9 left-0 inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-[#0a0a0a]/90 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.28em] text-white/85 backdrop-blur-md transition-all duration-300 ${
-                    copied ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0 group-hover:opacity-100 group-hover:translate-y-0"
+                  className={`pointer-events-none absolute -top-8 left-0 inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-[#0a0a0a]/90 px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.26em] text-white/85 backdrop-blur-md transition-all duration-300 sm:-top-9 sm:px-3 sm:py-1.5 sm:tracking-[0.28em] ${
+                    copied
+                      ? "translate-y-0 opacity-100"
+                      : "-translate-y-1 opacity-0 group-hover:opacity-100 group-hover:translate-y-0"
                   }`}
                   style={{fontFamily: FONT_MONO}}
                 >
@@ -396,10 +537,13 @@ export const ContactPage = () => {
                     className="inline-block h-1.5 w-1.5 rounded-full"
                     style={{backgroundColor: copied ? "#3ddc84" : ACCENT}}
                   />
-                  {copied ? "Copied to Clipboard" : "Click to Copy"}
+                  {copied ? "Copied to Clipboard" : "Tap to Copy"}
                 </span>
               </div>
-              <p className="mt-3 max-w-md font-mono text-[10px] uppercase tracking-[0.28em] text-white/40">
+              <p
+                className="mt-3 max-w-md font-mono text-[9px] uppercase tracking-[0.26em] text-white/40 sm:text-[10px] sm:tracking-[0.28em]"
+                style={{fontFamily: FONT_MONO}}
+              >
                 Encrypted mail preferred · Response window 24–48h
               </p>
             </ContactNode>
@@ -479,11 +623,11 @@ export const ContactPage = () => {
                   />
                 </div>
 
-                <div className="mt-12 flex flex-wrap items-center gap-6">
+                <div className="mt-10 flex flex-wrap items-center gap-4 sm:mt-12 sm:gap-6">
                   <button
                     type="submit"
                     disabled={submitting || form.email.trim().length === 0}
-                    className={`group relative inline-flex items-center gap-3 overflow-hidden border px-7 py-4 font-mono text-[10px] font-bold uppercase tracking-[0.32em] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-40 ${
+                    className={`group relative inline-flex w-full items-center justify-center gap-3 overflow-hidden border px-6 py-4 font-mono text-[10px] font-bold uppercase tracking-[0.32em] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:justify-start sm:px-7 ${
                       submitting
                         ? "border-[#FF5722] bg-[#FF5722] text-black"
                         : "border-[#FF5722] text-[#FF5722] hover:bg-[#FF5722] hover:text-black"
@@ -583,21 +727,43 @@ const MetaCell = ({title, value, accent}: {title: string; value: string; accent?
   </div>
 );
 
-const HudCoord = ({label, lat, lon}: {label: string; lat: string; lon: string}) => (
+const HudCoord = ({
+  label,
+  lat,
+  lon,
+  compact = false,
+}: {
+  label: string;
+  lat: string;
+  lon: string;
+  /** Mobile/portrait variant — shorter label, single coordinate value, smaller. */
+  compact?: boolean;
+}) => (
   <div
-    className="rounded-sm border border-white/[0.08] bg-black/55 px-3 py-2 backdrop-blur-md"
+    className="rounded-sm border border-white/[0.08] bg-black/55 px-2.5 py-1.5 backdrop-blur-md sm:px-3 sm:py-2"
     style={{fontFamily: FONT_MONO}}
   >
-    <div className="flex items-center gap-2 font-mono text-[8.5px] uppercase tracking-[0.32em] text-white/45">
+    <div className="flex items-center gap-1.5 font-mono text-[8px] uppercase tracking-[0.28em] text-white/45 sm:text-[8.5px] sm:tracking-[0.32em]">
       <span className="inline-block h-1 w-1" style={{backgroundColor: ACCENT}} />
-      {label}
+      <span className="truncate">{label}</span>
     </div>
-    <div className="mt-1 flex items-center gap-3 font-mono text-[10px] tabular-nums text-white/85">
+    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 font-mono text-[9px] tabular-nums text-white/85 sm:text-[10px] sm:gap-x-3">
       <span>{lat}</span>
-      <span className="text-white/30">·</span>
-      <span>{lon}</span>
+      {!compact && <span className="text-white/30">·</span>}
+      <span className={compact ? "text-white/65" : ""}>{lon}</span>
     </div>
   </div>
+);
+
+/** Four corner ticks — gives the mobile canvas an "instrument viewport" feel
+ *  matching the rest of the brand language (mirrors the Footer corner brackets). */
+const CornerTicks = () => (
+  <>
+    <span className="pointer-events-none absolute -left-px -top-px h-3 w-3 border-l border-t border-white/30" />
+    <span className="pointer-events-none absolute -right-px -top-px h-3 w-3 border-r border-t border-white/30" />
+    <span className="pointer-events-none absolute -bottom-px -left-px h-3 w-3 border-b border-l border-white/30" />
+    <span className="pointer-events-none absolute -bottom-px -right-px h-3 w-3 border-b border-r border-white/30" />
+  </>
 );
 
 /**

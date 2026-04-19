@@ -16,10 +16,24 @@ const funnyPhrases = [
   "Almost ready to conquer the city...",
 ];
 
+// Module-scoped flag: once the hero loader has completed in this session, we
+// don't show it again on subsequent revisits to "/". The GLB is cached via
+// useGLTF.preload, so re-mounts hit the cache and drei's useProgress can
+// report stale 0% values (it shares THREE.DefaultLoadingManager state with
+// other 3D scenes on the site, and saveLastTotalLoaded gets clobbered when
+// other pages load assets — see drei's Progress.js).
+let hasCompletedOnce = false;
+
+// Grace window: if no real loading activity happens within this window after
+// the loader mounts, assume the model is cached and hide. This is the
+// safety-net for the race where progress is stuck at 0 because nothing new
+// is actually loading.
+const IDLE_TIMEOUT_MS = 1200;
+
 export const Loader = () => {
-  const { progress } = useProgress();
+  const { progress, active, total } = useProgress();
   const [textIndex, setTextIndex] = useState(0);
-  const [mounted, setMounted] = useState(true);
+  const [mounted, setMounted] = useState(!hasCompletedOnce);
   const lockedRef = useRef(false);
   const unlockedRef = useRef(false);
 
@@ -31,6 +45,7 @@ export const Loader = () => {
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     if (!lockedRef.current) {
       lockedRef.current = true;
       document.body.style.overflow = "hidden";
@@ -39,7 +54,26 @@ export const Loader = () => {
     return () => {
       document.body.style.overflow = "";
     };
-  }, []);
+  }, [mounted]);
+
+  // Idle-timeout safety net: if nothing is actively loading shortly after
+  // mount (cached navigation), unstick the loader regardless of the
+  // reported progress value.
+  useEffect(() => {
+    if (!mounted) return;
+    if (active) return;
+    const t = setTimeout(() => {
+      if (!active) {
+        hasCompletedOnce = true;
+        if (!unlockedRef.current) {
+          unlockedRef.current = true;
+          document.body.style.overflow = "";
+        }
+        setMounted(false);
+      }
+    }, IDLE_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [mounted, active, total]);
 
   useEffect(() => {
     if (progress < 100) return;
@@ -47,7 +81,10 @@ export const Loader = () => {
       unlockedRef.current = true;
       document.body.style.overflow = "";
     }
-    const t = setTimeout(() => setMounted(false), 1000);
+    const t = setTimeout(() => {
+      hasCompletedOnce = true;
+      setMounted(false);
+    }, 1000);
     return () => clearTimeout(t);
   }, [progress]);
 

@@ -183,50 +183,81 @@ export default function SnapController() {
         }
       }
 
-      // Design: element-based anchors (desktop). Mobile uses native scroll.
+      // Design: element-based anchors (desktop). Mobile gets a single
+      // snap target at the section TOP so a downward gesture from the
+      // hero (FREEDOM DEFINED) lands the user at the start of the
+      // design section instead of skipping it entirely. Once parked
+      // there, `isNativeMobileScrollZone()` returns true and the rest
+      // of the section is browsed with normal native scroll, which is
+      // what drives the scrubbed canvas sequence.
       const designSection = document.querySelector<HTMLElement>(
         '[data-snap-stage="design"]',
       );
-      if (designSection && !isMobileViewport()) {
-        const stickyEl =
-          designSection.querySelector<HTMLElement>('[data-snap-sticky]');
-        const anchors = Array.from(
-          designSection.querySelectorAll<HTMLElement>(
-            '[data-snap-anchor^="design-"]',
-          ),
-        );
-        anchors.forEach((anchor, i) => {
+      if (designSection) {
+        if (isMobileViewport()) {
           stages.push({
-            id: `design-${i}`,
-            getY: () => resolveAnchorY(anchor, stickyEl),
-            duration: 1.15,
+            id: 'design-top',
+            getY: () => {
+              const top =
+                designSection.getBoundingClientRect().top + window.scrollY;
+              return Math.max(0, Math.min(maxScrollY(), top));
+            },
+            duration: 1.1,
           });
-        });
+        } else {
+          const stickyEl =
+            designSection.querySelector<HTMLElement>('[data-snap-sticky]');
+          const anchors = Array.from(
+            designSection.querySelectorAll<HTMLElement>(
+              '[data-snap-anchor^="design-"]',
+            ),
+          );
+          anchors.forEach((anchor, i) => {
+            stages.push({
+              id: `design-${i}`,
+              getY: () => resolveAnchorY(anchor, stickyEl),
+              duration: 1.15,
+            });
+          });
+        }
       }
 
-      // Cargo: fraction-based on desktop. Mobile uses native scroll.
+      // Cargo: fraction-based on desktop. Mobile: single snap target
+      // at the section TOP for the same reason as design above.
       const cargoEl = document.querySelector<HTMLElement>(
         '[data-snap-stage="cargo"]',
       );
-      if (cargoEl && !isMobileViewport()) {
-        CARGO_POINTS.forEach((p, i) => {
+      if (cargoEl) {
+        if (isMobileViewport()) {
           stages.push({
-            id: `cargo-${i}`,
+            id: 'cargo-top',
             getY: () => {
-              const rect = cargoEl.getBoundingClientRect();
-              const top = rect.top + window.scrollY;
-              const range = Math.max(
-                0,
-                cargoEl.offsetHeight - window.innerHeight,
-              );
-              return Math.max(
-                0,
-                Math.min(maxScrollY(), top + p * range),
-              );
+              const top =
+                cargoEl.getBoundingClientRect().top + window.scrollY;
+              return Math.max(0, Math.min(maxScrollY(), top));
             },
-            duration: 1.15,
+            duration: 1.1,
           });
-        });
+        } else {
+          CARGO_POINTS.forEach((p, i) => {
+            stages.push({
+              id: `cargo-${i}`,
+              getY: () => {
+                const rect = cargoEl.getBoundingClientRect();
+                const top = rect.top + window.scrollY;
+                const range = Math.max(
+                  0,
+                  cargoEl.offsetHeight - window.innerHeight,
+                );
+                return Math.max(
+                  0,
+                  Math.min(maxScrollY(), top + p * range),
+                );
+              },
+              duration: 1.15,
+            });
+          });
+        }
       }
 
       const studioEl = document.querySelector<HTMLElement>(

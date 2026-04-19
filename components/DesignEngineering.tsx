@@ -9,12 +9,6 @@ const PRIORITY_LEAD = 8;
 /** Mobile: when “INNOVATION IN MOTION” is on screen, never show frames before `6.webp` (0-based index 5). */
 const MOBILE_POWERTRAIN_MIN_FRAME_INDEX = 5;
 const MOBILE_MQ = "(max-width: 767px)";
-/** Static representative frame per stage shown on mobile (no scroll scrub). */
-const MOBILE_STATIC_FRAMES: Record<string, string> = {
-  "STAGE 01. EXTERIOR": "/design_collection/1.webp",
-  "STAGE 02. INTERIOR": "/design_collection/20.webp",
-  "STAGE 03. POWERTRAIN": "/design_collection/33.webp",
-};
 /** 0-based index for `33.webp` when the powertrain headline reaches the viewport. */
 const POWERTRAIN_FRAME_INDEX = 32;
 /** Viewport Y (px from top) where we treat the headline as “on screen” for sync with frame 33. */
@@ -45,21 +39,6 @@ const DesignEngineering = () => {
   const priorityGateRef = useRef(false);
   const [imagesReady, setImagesReady] = useState(false);
   const [shouldPreload, setShouldPreload] = useState(false);
-  /**
-   * Mobile devices skip the entire 40-frame scroll-scrubbed canvas pipeline
-   * and render a normal stack of story blocks, each with a single static
-   * representative frame above its copy.
-   */
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    if (typeof globalThis.matchMedia === "undefined") return;
-    const mq = globalThis.matchMedia(MOBILE_MQ);
-    const sync = () => setIsMobile(mq.matches);
-    sync();
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
-  }, []);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -73,7 +52,6 @@ const DesignEngineering = () => {
   );
 
   useEffect(() => {
-    if (isMobile) return;
     if (!containerRef.current) return;
     if (typeof IntersectionObserver === "undefined") {
       setShouldPreload(true);
@@ -94,10 +72,9 @@ const DesignEngineering = () => {
     );
     io.observe(containerRef.current);
     return () => io.disconnect();
-  }, [isMobile]);
+  }, []);
 
   useEffect(() => {
-    if (isMobile) return;
     if (!shouldPreload) return;
 
     let cancelled = false;
@@ -142,10 +119,9 @@ const DesignEngineering = () => {
     return () => {
       cancelled = true;
     };
-  }, [isMobile, shouldPreload]);
+  }, [shouldPreload]);
 
   useEffect(() => {
-    if (isMobile) return;
     if (!imagesReady || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
@@ -282,7 +258,7 @@ const DesignEngineering = () => {
       globalThis.window.cancelAnimationFrame(animationId);
       resizeObserver?.disconnect();
     };
-  }, [isMobile, imagesReady, scrollYProgress]);
+  }, [imagesReady, scrollYProgress]);
 
   const storyBlocks = [
     {
@@ -316,83 +292,6 @@ const DesignEngineering = () => {
       body: "Introducing the cutting-edge Powertrain of ETX, designed by experts for outstanding performance. Built to endure diverse terrains, and rigorously tested, ETX ensures reliability without compromising power.",
     },
   ] as const;
-
-  if (isMobile) {
-    return (
-      <section
-        ref={containerRef}
-        className="relative w-full min-w-0 max-w-full overflow-x-clip border-t border-white/10 bg-[#030303] text-white"
-        id="design-engineering"
-        data-snap-stage="design"
-        data-snap-native-scroll-mobile="true"
-      >
-        <div className="px-4 pb-12 pt-10 sm:px-5">
-          <div className="mb-8">
-            <p className="font-mono text-[9px] font-semibold uppercase tracking-[0.42em] text-[#FF6B00]">
-              Design & engineering
-            </p>
-            <h2 className="mt-2 max-w-[22ch] text-[clamp(1.5rem,5.5vw+0.6rem,2rem)] font-black uppercase leading-[1.02] tracking-[-0.03em] text-white">
-              Every angle, intentional.
-            </h2>
-            <p className="mt-2 max-w-[36ch] text-[12px] leading-snug text-white/55">
-              Three stages — exterior, cabin, and powertrain — each shown
-              in a single, considered frame.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-10">
-            {storyBlocks.map((block, blockIndex) => (
-              <article
-                key={block.stage}
-                className="relative w-full border-l-2 border-[#FF6B00]/70 pl-4 sm:pl-5"
-              >
-                <div
-                  className="pointer-events-none absolute bottom-0 right-0 select-none font-black leading-none text-white/[0.04]"
-                  style={{ fontSize: "clamp(3.5rem, 22vw, 5.5rem)" }}
-                  aria-hidden
-                >
-                  {String(blockIndex + 1).padStart(2, "0")}
-                </div>
-
-                <div className="mb-3">
-                  <span className="font-mono text-[9px] font-bold uppercase tracking-[0.32em] text-[#FF6B00]">
-                    {block.stage}
-                  </span>
-                </div>
-
-                <h2 className="mb-4 text-[clamp(1.6rem,calc(0.55rem+5.4vw),2.4rem)] font-black uppercase leading-[1.02] tracking-[-0.03em] text-balance text-white antialiased [hyphens:none]">
-                  {block.title}
-                </h2>
-
-                <figure className="relative mb-4 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#050505] shadow-[0_16px_48px_rgba(0,0,0,0.5)]">
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0"
-                    style={{
-                      background:
-                        "radial-gradient(ellipse at center, rgba(255,107,0,0.14) 0%, rgba(0,0,0,0) 65%)",
-                    }}
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={MOBILE_STATIC_FRAMES[block.stage]}
-                    alt={`ETX ${block.stage.replace(/^STAGE \d+\.\s*/, "").toLowerCase()} reference frame`}
-                    loading="lazy"
-                    decoding="async"
-                    className="relative block h-auto w-full"
-                  />
-                </figure>
-
-                <p className="max-w-prose text-[13px] leading-[1.7] text-white/68 antialiased sm:text-[14px]">
-                  {block.body}
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   return (
     <section
