@@ -22,6 +22,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.elektrateq.com',
+        port: '',
+        pathname: '/wp-content/**',
+      },
     ],
   },
   transpilePackages: ['motion', 'three', '@react-three/fiber', '@react-three/drei'],

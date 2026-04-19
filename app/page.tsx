@@ -5,13 +5,11 @@ import { Canvas } from '@react-three/fiber';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
-import { Navbar } from '@/components/Navbar';
 import { VehicleScene } from '@/components/VehicleScene';
 import { Loader } from '@/components/Loader';
 import DesignEngineering from '@/components/DesignEngineering';
 import CargoSketchSection from '@/components/CargoSketchSection';
 import InteractiveStudio from '@/components/InteractiveStudio';
-import Footer from '@/components/Footer';
 import SnapController from '@/components/SnapController';
 
 // Register ScrollTrigger
@@ -173,7 +171,6 @@ export default function Home() {
   return (
     <main className="relative min-w-0 max-w-full overflow-x-clip bg-[#000000] text-white">
       <Loader />
-      <Navbar />
       <SnapController />
 
       <div className="fixed inset-4 orange-frame grid-overlay pointer-events-none z-50 opacity-10" />
@@ -333,7 +330,6 @@ export default function Home() {
       <DesignEngineering />
       <CargoSketchSection />
       <InteractiveStudio />
-      <Footer />
     </main>
   );
 }

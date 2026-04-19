@@ -1,0 +1,88 @@
+{
+  "articles": [
+    {
+      "slug": "etx-if-design-award-2024",
+      "title": "ETX by Elektrateq Wins iF Design Award 2024",
+      "summary": "The recent iF International Design Award ceremony in Berlin witnessed a historic moment for Sri Lanka. Elektrateq, a visionary Sri Lankan company led by CEO Dr. Harsha Subasinghe, shattered barriers by winning the prestigious award for their revolutionary electric three-wheeler ETX.",
+      "thumbnail": "https://www.elektrateq.com/wp-content/uploads/2024/05/If-Awards-Image-1-1024x1024.jpg",
+      "date": "2024-05-18",
+      "source": "iF Design",
+      "kicker": "Recognition",
+      "paragraphs": [
+        "Berlin’s iF International Design Forum has long been a benchmark for products that unite craft, clarity, and cultural relevance. In 2024, the stage belonged to a quiet revolution from Colombo: the ETX, Elektrateq’s electric three-wheeler, was honored among the world’s most considered mobility designs.",
+        "For Sri Lanka, the win is more than a trophy—it is proof that island-scale engineering can compete on the global stage without borrowing someone else’s visual language. The ETX treats the tuk-tuk lineage with respect, then reframes it as a precision instrument: calmer surfaces, deliberate proportions, and an interior architecture that reads like a cockpit rather than a compromise.",
+        "Dr. Harsha Subasinghe, CEO of Elektrateq, described the evening as a validation of years spent obsessing over thermal behavior, ingress ergonomics, and the invisible choreography between rider and road. “We weren’t designing for applause,” he noted in remarks after the ceremony. “We were designing for the person who spends ten hours inside this shape.”",
+        "Jurors highlighted the vehicle’s honest material strategy and its refusal to decorate for decoration’s sake. Every cut line serves ventilation, lighting, or structural continuity. That restraint is harder than it looks—it demands a team willing to delete ideas until only the essential remains.",
+        "The iF accolade arrives as cities across South Asia rethink last-mile energy, safety, and noise. If the ETX is a signal of what comes next, it is this: the future of Colombo’s streets will not be imported wholesale. It will be authored here—measured, electric, and unapologetically local."
+      ],
+      "sketches": [
+        {
+          "src": "/design_collection/8.webp",
+          "alt": "Technical linework study of the ETX cockpit architecture",
+          "caption": "Cockpit architecture study — proportion, sightlines, and control grouping."
+        },
+        {
+          "src": "/design_collection/21.webp",
+          "alt": "ETX exterior surfacing and lighting graphic development",
+          "caption": "Surfacing development — how light reads across primary body planes."
+        }
+      ]
+    },
+    {
+      "slug": "elektrateq-dimo-partnership",
+      "title": "Elektrateq Takes Charge with DIMO Partnership",
+      "summary": "A powerful collaboration between Sri Lankan innovation and established market leadership is set to transform urban mobility. On May 31st, Vega Innovations, a company renowned for its cutting-edge innovations and developments, joined forces with DIMO the island nation’s leading automotive distributor, through a groundbreaking MOU.",
+      "thumbnail": "https://www.elektrateq.com/wp-content/uploads/2024/07/DSC04228-1-1-1024x575.jpg",
+      "date": "2024-06-02",
+      "source": "Elektrateq",
+      "kicker": "Strategic Alliance",
+      "paragraphs": [
+        "When a deep-tech builder and a trusted mobility distributor align, the conversation changes. The May 31 memorandum of understanding between Vega Innovations and DIMO is not a headline for its own sake—it is infrastructure for scale: service networks, customer confidence, and the unglamorous work of keeping EVs alive after day one.",
+        "DIMO’s footprint across Sri Lanka turns abstract ambition into reachable maintenance, training, and parts logic. Vega’s history with high-performance electric platforms ensures the product side stays brave. Together, the partnership aims to shorten the distance between prototype pride and daily reliability.",
+        "For the ETX program, the MOU signals that three-wheel electrification will be supported like serious transportation—not as a pilot tucked in a corner of a showroom. Dealers become educators. Technicians become translators between software-defined systems and real-world grit.",
+        "Observers noted the tone of the signing: calm, operational, focused on execution timelines rather than rhetoric. That discipline matters. Urban riders do not buy manifestos; they buy torque they can trust in rain, heat, and traffic that never clocks out.",
+        "As battery ecosystems mature and financing models adapt, collaborations like this will decide whether electric mobility feels inevitable—or intermittent. Elektrateq’s charge, quite literally, now travels on two tracks: invention in the lab, and stewardship on the street."
+      ],
+      "sketches": [
+        {
+          "src": "/design_collection/12.webp",
+          "alt": "Technical diagram of ETX chassis and packaging layout",
+          "caption": "Chassis packaging — battery envelope, crash paths, and service access."
+        },
+        {
+          "src": "/design_collection/18.webp",
+          "alt": "Interior component layout sketch for ETX",
+          "caption": "Interior component layout — density without visual noise."
+        }
+      ]
+    },
+    {
+      "slug": "us-vega-green-energy-sri-lanka",
+      "title": "U.S. partners with VEGA to Promote Green Energy and Electric Vehicles in Sri Lanka",
+      "summary": "The United States continues to promote sustainable energy and economic growth in Sri Lanka. On June 15, U.S. Ambassador to Sri Lanka Julie Chung attended a signing ceremony for a partnership that accelerates clean transport demonstrations and strengthens the policy dialogue around renewable integration.",
+      "thumbnail": "https://www.elektrateq.com/wp-content/uploads/2023/08/usembassy-1024x614.jpeg",
+      "date": "2023-06-16",
+      "source": "U.S. Embassy Colombo",
+      "kicker": "Diplomacy",
+      "paragraphs": [
+        "Climate partnerships are often photographed in bold colors and bright tents, but their value shows up later—in procurement standards, training curricula, and the slow alignment of regulators with builders. The June 15 ceremony in Colombo marked another step in that patient work, with the United States backing initiatives that foreground green energy and electric mobility alongside Sri Lankan innovators.",
+        "Ambassador Julie Chung’s presence underscored a simple message: transitions succeed when they are collaborative, not performative. Vega Innovations’ platforms became a tangible reference point—metal, glass, and software you could walk around—while policy conversations continued upstairs in quieter rooms.",
+        "For communities balancing cost, range anxiety, and grid realities, EV advocacy must speak in kilowatt-hours and maintenance intervals, not slogans. The partnership aims to widen access to credible demonstrations, so fleet owners and public agencies can evaluate electric options with evidence instead of hope.",
+        "Sri Lanka’s energy story is inseparable from resilience. Any serious EV agenda has to acknowledge peaks, outages, and the geography of charging. That is why technical credibility matters as much as diplomatic goodwill: the hardware has to survive the same world the speeches describe.",
+        "If the ceremony was a beginning, the work ahead is unglamorous—standards, safety, and steady deployment. Still, beginnings set tone. And on this day, the tone was unmistakably forward."
+      ],
+      "sketches": [
+        {
+          "src": "/design_collection/27.webp",
+          "alt": "Technical visualization of ETX energy and thermal systems",
+          "caption": "Energy systems visualization — thermal gradients and airflow intent."
+        },
+        {
+          "src": "/design_collection/31.webp",
+          "alt": "ETX design development linework overlay",
+          "caption": "Design development overlay — late-stage graphic refinement."
+        }
+      ]
+    }
+  ]
+}
