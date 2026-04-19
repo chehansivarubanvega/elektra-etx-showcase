@@ -45,9 +45,13 @@ type Stage = {
 const HERO_SUBSTAGES: { id: string; p: number; duration: number }[] = [
   { id: 'hero', p: 0, duration: 0.9 },
   { id: 'metrics', p: 0.22, duration: 1.25 },
-  { id: 'urban', p: 0.51, duration: 1.3 },
-  { id: 'charging', p: 0.68, duration: 1.3 },
-  { id: 'daylight', p: 0.89, duration: 1.3 },
+  { id: 'urban', p: 0.51, duration: 1.25 },
+  // urban → charging covers a long 3D-only beat (no UI tweens during the
+  // 2.2s "hold"). Stretch the snap a touch so the model has time to glide
+  // across instead of getting whipped, and so the scrub buffer doesn't have
+  // to play catch-up at the end.
+  { id: 'charging', p: 0.68, duration: 1.55 },
+  { id: 'daylight', p: 0.89, duration: 1.4 },
 ];
 
 /** Fractions of cargo section's useScroll progress (cargo renders as a

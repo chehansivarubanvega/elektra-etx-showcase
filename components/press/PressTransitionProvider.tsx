@@ -6,6 +6,7 @@ import gsap from 'gsap';
 
 type PressTransitionContextValue = {
   navigateToPress: (e: React.MouseEvent) => void;
+  navigateToAbout: (e: React.MouseEvent) => void;
 };
 
 const PressTransitionContext = createContext<PressTransitionContextValue | null>(null);
@@ -18,44 +19,89 @@ export function usePressTransition(): PressTransitionContextValue {
   return ctx;
 }
 
+type PendingReveal = {x: number; y: number; r: number};
+
+/** Single circular clip-path reveal — used for both /press (light) and /about (dark). */
+function runOpeningReveal(el: HTMLDivElement, x: number, y: number, r: number, onDone: () => void) {
+  gsap.killTweensOf(el);
+  gsap.set(el, {opacity: 1, pointerEvents: 'auto'});
+  gsap.fromTo(
+    el,
+    {clipPath: `circle(0px at ${x}px ${y}px)`},
+    {
+      clipPath: `circle(${r}px at ${x}px ${y}px)`,
+      duration: 0.9,
+      ease: 'power3.inOut',
+      onComplete: onDone,
+    },
+  );
+}
+
+function runClosingReveal(el: HTMLDivElement, x: number, y: number, r: number) {
+  gsap.killTweensOf(el);
+  gsap.fromTo(
+    el,
+    {clipPath: `circle(${r}px at ${x}px ${y}px)`, opacity: 1, pointerEvents: 'auto'},
+    {
+      clipPath: `circle(0px at ${x}px ${y}px)`,
+      duration: 0.85,
+      ease: 'power3.inOut',
+      onComplete: () => {
+        gsap.set(el, {pointerEvents: 'none', opacity: 0, clearProps: 'clipPath'});
+      },
+    },
+  );
+}
+
+function computeReveal(e: React.MouseEvent): PendingReveal {
+  const x = e.clientX;
+  const y = e.clientY;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const r = Math.ceil(Math.hypot(Math.max(x, vw - x), Math.max(y, vh - y)) + 48);
+  return {x, y, r};
+}
+
 export function PressTransitionProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const pathname = usePathname();
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const pendingRef = useRef<{x: number; y: number; r: number} | null>(null);
+
+  const pressOverlayRef = useRef<HTMLDivElement>(null);
+  const aboutOverlayRef = useRef<HTMLDivElement>(null);
+
+  const pressPendingRef = useRef<PendingReveal | null>(null);
+  const aboutPendingRef = useRef<PendingReveal | null>(null);
+
   const prevPathRef = useRef<string | null>(null);
 
   const navigateToPress = useCallback(
     (e: React.MouseEvent) => {
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
-        return;
-      }
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
       e.preventDefault();
-      const el = overlayRef.current;
+      const el = pressOverlayRef.current;
       if (!el || typeof window === 'undefined') {
         router.push('/press');
         return;
       }
-      const x = e.clientX;
-      const y = e.clientY;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const r = Math.ceil(Math.hypot(Math.max(x, vw - x), Math.max(y, vh - y)) + 48);
-      pendingRef.current = {x, y, r};
-      gsap.killTweensOf(el);
-      gsap.set(el, {opacity: 1, pointerEvents: 'auto'});
-      gsap.fromTo(
-        el,
-        {clipPath: `circle(0px at ${x}px ${y}px)`},
-        {
-          clipPath: `circle(${r}px at ${x}px ${y}px)`,
-          duration: 0.9,
-          ease: 'power3.inOut',
-          onComplete: () => {
-            router.push('/press');
-          },
-        },
-      );
+      const reveal = computeReveal(e);
+      pressPendingRef.current = reveal;
+      runOpeningReveal(el, reveal.x, reveal.y, reveal.r, () => router.push('/press'));
+    },
+    [router],
+  );
+
+  const navigateToAbout = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      const el = aboutOverlayRef.current;
+      if (!el || typeof window === 'undefined') {
+        router.push('/about');
+        return;
+      }
+      const reveal = computeReveal(e);
+      aboutPendingRef.current = reveal;
+      runOpeningReveal(el, reveal.x, reveal.y, reveal.r, () => router.push('/about'));
     },
     [router],
   );
@@ -63,51 +109,55 @@ export function PressTransitionProvider({children}: {children: React.ReactNode})
   useLayoutEffect(() => {
     const prev = prevPathRef.current;
     prevPathRef.current = pathname;
-    const el = overlayRef.current;
-    if (!el) return;
 
+    const pressEl = pressOverlayRef.current;
+    const aboutEl = aboutOverlayRef.current;
+    if (!pressEl || !aboutEl) return;
+
+    /** Reset overlays if we are not currently on their target route. */
     if (!pathname.startsWith('/press')) {
-      gsap.killTweensOf(el);
-      gsap.set(el, {pointerEvents: 'none', opacity: 0, clearProps: 'clipPath'});
-      pendingRef.current = null;
-      return;
+      gsap.killTweensOf(pressEl);
+      gsap.set(pressEl, {pointerEvents: 'none', opacity: 0, clearProps: 'clipPath'});
+      pressPendingRef.current = null;
+    }
+    if (!pathname.startsWith('/about')) {
+      gsap.killTweensOf(aboutEl);
+      gsap.set(aboutEl, {pointerEvents: 'none', opacity: 0, clearProps: 'clipPath'});
+      aboutPendingRef.current = null;
     }
 
-    if (prev && prev.startsWith('/press')) {
-      return;
+    /** Play the inverse (closing) reveal once arrived, only on first entry. */
+    if (pathname.startsWith('/press') && !(prev && prev.startsWith('/press'))) {
+      const pending = pressPendingRef.current;
+      if (pending) {
+        runClosingReveal(pressEl, pending.x, pending.y, pending.r);
+        pressPendingRef.current = null;
+      }
     }
 
-    const pending = pendingRef.current;
-    if (!pending) {
-      return;
+    if (pathname.startsWith('/about') && !(prev && prev.startsWith('/about'))) {
+      const pending = aboutPendingRef.current;
+      if (pending) {
+        runClosingReveal(aboutEl, pending.x, pending.y, pending.r);
+        aboutPendingRef.current = null;
+      }
     }
-
-    const {x, y, r} = pending;
-    gsap.killTweensOf(el);
-    gsap.fromTo(
-      el,
-      {clipPath: `circle(${r}px at ${x}px ${y}px)`, opacity: 1, pointerEvents: 'auto'},
-      {
-        clipPath: `circle(0px at ${x}px ${y}px)`,
-        duration: 0.85,
-        ease: 'power3.inOut',
-        onComplete: () => {
-          gsap.set(el, {pointerEvents: 'none', opacity: 0, clearProps: 'clipPath'});
-          pendingRef.current = null;
-        },
-      },
-    );
   }, [pathname]);
 
-  const value = React.useMemo(() => ({navigateToPress}), [navigateToPress]);
+  const value = React.useMemo(() => ({navigateToPress, navigateToAbout}), [navigateToPress, navigateToAbout]);
 
   return (
     <PressTransitionContext.Provider value={value}>
       {children}
       <div
-        ref={overlayRef}
+        ref={pressOverlayRef}
         aria-hidden
         className="pointer-events-none fixed inset-0 z-[200] bg-[#FEFEFE] opacity-0"
+      />
+      <div
+        ref={aboutOverlayRef}
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[200] bg-[#000000] opacity-0"
       />
     </PressTransitionContext.Provider>
   );

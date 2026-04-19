@@ -25,7 +25,8 @@ const modules = [
     items: [
       {label: 'Home', href: '/'},
       {label: 'Press', href: '/press'},
-      {label: 'About ETX', href: '#'},
+      {label: 'Archive', href: '/archive'},
+      {label: 'About', href: '/about'},
       {label: 'Technology', href: '#'},
       {label: 'Contact', href: 'mailto:info@elektrateq.com'},
     ] as FooterItem[],
@@ -60,7 +61,8 @@ function isInternalHref(href: string) {
 
 const Footer = () => {
   const pathname = usePathname();
-  const isLight = pathname?.startsWith('/press') ?? false;
+  const isArchive = pathname?.startsWith('/archive') ?? false;
+  const isLight = pathname?.startsWith('/press') || isArchive || false;
   const {navigateToPress} = usePressTransition();
   const accent = isLight ? ACCENT_LIGHT : ACCENT_DARK;
   const [time, setTime] = useState('');
@@ -133,9 +135,11 @@ const Footer = () => {
       {...(snapFooter ? {'data-snap-stage': 'footer'} : {})}
       className={cn(
         'relative w-full min-w-0 max-w-full overflow-hidden border-t',
-        isLight
-          ? 'border-[#1A1A1A]/[0.08] bg-[#FEFEFE] text-[#1A1A1A]'
-          : 'border-white/[0.08] bg-[#030303] text-white',
+        isArchive
+          ? 'border-[#1A1A1A]/[0.08] bg-[#F9F8F3] text-[#1A1A1A]'
+          : isLight
+            ? 'border-[#1A1A1A]/[0.08] bg-[#FEFEFE] text-[#1A1A1A]'
+            : 'border-white/[0.08] bg-[#030303] text-white',
       )}
     >
       <div

@@ -32,10 +32,6 @@ export function getArticleSlugs(): string[] {
   return articles.map((a) => a.slug);
 }
 
-export function getOtherArticles(currentSlug: string): PressArticle[] {
-  return articles.filter((a) => a.slug !== currentSlug);
-}
-
 export function getNextArticles(currentSlug: string, limit = 6): PressArticle[] {
   const idx = articles.findIndex((a) => a.slug === currentSlug);
   if (idx === -1) return articles.slice(0, limit);

@@ -6,6 +6,7 @@ import './globals.css';
 import {Providers} from './providers';
 import {Navbar} from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import {PageTransition} from '@/components/PageTransition';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,7 +24,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <body className="min-w-0 overflow-x-clip" suppressHydrationWarning>
         <Providers>
           <Navbar />
-          {children}
+          <PageTransition>{children}</PageTransition>
           <Footer />
         </Providers>
         <Analytics />

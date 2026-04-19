@@ -10,12 +10,12 @@ import {usePressTransition} from '@/components/press/PressTransitionProvider';
 const MOBILE_MAX = 767;
 
 /** Home: pinned hero is long — use ~2 viewports. Press: normal document — past first hero fold (~1 viewport). */
-function heroPastThresholdPx(isPress: boolean): number {
+function heroPastThresholdPx(isShortDocument: boolean): number {
   if (typeof globalThis.window === 'undefined') {
-    return isPress ? 560 : 960;
+    return isShortDocument ? 560 : 960;
   }
   const vh = globalThis.window.innerHeight;
-  if (isPress) {
+  if (isShortDocument) {
     return Math.round(Math.max(vh * 1.05, 560));
   }
   return Math.max(vh * 2, 960);
@@ -24,7 +24,10 @@ function heroPastThresholdPx(isPress: boolean): number {
 export const Navbar = () => {
   const pathname = usePathname();
   const isPressRoute = pathname?.startsWith('/press') ?? false;
-  const {navigateToPress} = usePressTransition();
+  const isArchiveRoute = pathname?.startsWith('/archive') ?? false;
+  const isAboutRoute = pathname?.startsWith('/about') ?? false;
+  const isLightSurface = isPressRoute || isArchiveRoute;
+  const {navigateToPress, navigateToAbout} = usePressTransition();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [pastHero, setPastHero] = useState(false);
@@ -33,6 +36,7 @@ export const Navbar = () => {
 
   /** Mobile: hide main bar + show floating hamburger after leaving the hero fold (home or press). */
   const effectivePastHero = pastHero && isMobile;
+  const shortDocumentRoute = isPressRoute || isArchiveRoute;
 
   useEffect(() => {
     const onResize = () => {
@@ -41,13 +45,13 @@ export const Navbar = () => {
       if (!mobile) {
         setPastHero(false);
       } else {
-        setPastHero(scrollY.get() > heroPastThresholdPx(isPressRoute));
+        setPastHero(scrollY.get() > heroPastThresholdPx(shortDocumentRoute));
       }
     };
     onResize();
     globalThis.window.addEventListener('resize', onResize, {passive: true});
     return () => globalThis.window.removeEventListener('resize', onResize);
-  }, [scrollY, isPressRoute]);
+  }, [scrollY, shortDocumentRoute]);
 
   useEffect(() => {
     if (!effectivePastHero) setMenuOpen(false);
@@ -57,9 +61,9 @@ export const Navbar = () => {
     const y = scrollY.get();
     setIsScrolled(y > 50);
     if (typeof globalThis.window !== 'undefined' && globalThis.window.innerWidth <= MOBILE_MAX) {
-      setPastHero(y > heroPastThresholdPx(isPressRoute));
+      setPastHero(y > heroPastThresholdPx(shortDocumentRoute));
     }
-  }, [scrollY, isPressRoute]);
+  }, [scrollY, shortDocumentRoute]);
 
   useEffect(() => {
     if (!menuOpen || !isMobile) return;
@@ -73,16 +77,18 @@ export const Navbar = () => {
   useMotionValueEvent(scrollY, 'change', (latest) => {
     setIsScrolled(latest > 50);
     if (typeof globalThis.window !== 'undefined' && globalThis.window.innerWidth <= MOBILE_MAX) {
-      setPastHero(latest > heroPastThresholdPx(isPressRoute));
+      setPastHero(latest > heroPastThresholdPx(shortDocumentRoute));
     } else {
       setPastHero(false);
     }
   });
 
-  const navItems = ['AERO', 'POWER', 'BUILD'] as const;
-
   const onPressNav = (e: React.MouseEvent) => {
     navigateToPress(e);
+  };
+
+  const onAboutNav = (e: React.MouseEvent) => {
+    navigateToAbout(e);
   };
 
   const headerVariants = useMemo(
@@ -97,7 +103,7 @@ export const Navbar = () => {
         borderRadius: '0px',
         backgroundColor: 'transparent',
       },
-      scrolled: isPressRoute
+      scrolled: isLightSurface
         ? {
             width: 'auto',
             top: 24,
@@ -120,18 +126,31 @@ export const Navbar = () => {
             backgroundColor: '#111111CC',
           },
     }),
-    [isPressRoute],
+    [isLightSurface],
   );
 
-  const logoColor = isPressRoute ? 'text-[#1A1A1A]' : 'text-white';
-  const navMuted = isPressRoute ? 'text-[#1A1A1A]/55' : 'text-white/60';
+  const logoColor = isLightSurface ? 'text-[#1A1A1A]' : 'text-white';
+  const navMuted = isLightSurface ? 'text-[#1A1A1A]/55' : 'text-white/60';
   const navHover = 'hover:text-[#FF5722]';
   const pressActive = pathname === '/press';
-  const pressLinkColor = isPressRoute
+  const archiveActive = pathname === '/archive';
+  const aboutActive = pathname === '/about';
+  const preorderActive = pathname === '/preorder';
+  const pressLinkColor = isLightSurface
     ? pressActive
       ? 'text-[#FF5722]'
       : `text-[#1A1A1A]/55 ${navHover}`
     : `${navMuted} ${navHover}`;
+  const archiveLinkColor = isLightSurface
+    ? archiveActive
+      ? 'text-[#FF5722]'
+      : `text-[#1A1A1A]/55 ${navHover}`
+    : `${navMuted} ${navHover}`;
+  const aboutLinkColor = isLightSurface
+    ? `text-[#1A1A1A]/55 ${navHover}`
+    : aboutActive
+      ? 'text-[#FF6B00]'
+      : `${navMuted} ${navHover}`;
 
   return (
     <>
@@ -142,7 +161,7 @@ export const Navbar = () => {
         transition={{duration: 0.5, ease: [0.22, 1, 0.36, 1]}}
         className={`fixed left-[50%] z-[100] box-border flex max-w-full -translate-x-[50%] items-center justify-between backdrop-blur-sm pointer-events-none max-md:px-5 max-md:pt-8 ${
           effectivePastHero ? 'max-md:hidden' : ''
-        } ${isPressRoute && isScrolled ? 'ring-1 ring-[#1A1A1A]/[0.08]' : ''}`}
+        } ${isLightSurface && isScrolled ? 'ring-1 ring-[#1A1A1A]/[0.08]' : ''}`}
       >
         <div className="pointer-events-auto flex items-center">
           <Link
@@ -154,40 +173,50 @@ export const Navbar = () => {
         </div>
 
         <nav
-          className={`pointer-events-auto hidden items-center gap-12 md:flex ${isScrolled ? 'ml-12' : ''}`}
+          className={`pointer-events-auto hidden items-center gap-10 md:flex ${isScrolled ? 'ml-12' : ''}`}
         >
-          {navItems.map((item) => (
-            <Link
-              key={item}
-              href="/"
-              className={`navbar-item text-[10px] font-bold uppercase tracking-[0.3em] transition-colors duration-300 ${navMuted} ${navHover}`}
-            >
-              {item}
-            </Link>
-          ))}
+          <Link
+            href="/about"
+            onClick={!isAboutRoute ? onAboutNav : undefined}
+            className={`navbar-item text-[10px] font-bold uppercase tracking-[0.3em] transition-colors duration-300 ${aboutLinkColor}`}
+          >
+            About
+          </Link>
           <Link
             href="/press"
-            onClick={isPressRoute ? undefined : onPressNav}
+            onClick={!isPressRoute && !isArchiveRoute ? onPressNav : undefined}
             className={`navbar-item text-[10px] font-bold uppercase tracking-[0.3em] transition-colors duration-300 ${pressLinkColor}`}
           >
             Press
           </Link>
+          <Link
+            href="/archive"
+            className={`navbar-item text-[10px] font-bold uppercase tracking-[0.3em] transition-colors duration-300 ${archiveLinkColor}`}
+          >
+            Archive
+          </Link>
         </nav>
 
-        <div className={`pointer-events-auto flex items-center gap-6 ${isScrolled ? 'ml-12' : ''}`}>
-          <button
-            type="button"
-            className={`hidden text-[10px] font-bold uppercase tracking-[0.3em] transition-colors md:block ${
-              isPressRoute ? 'text-[#1A1A1A] hover:text-[#FF5722]' : 'text-white hover:text-[#FF5722]'
+        <div className={`pointer-events-auto flex items-center gap-4 ${isScrolled ? 'ml-12' : ''}`}>
+          {/* Preorder CTA — promoted as a brand-orange pill so it reads as the
+              page's primary conversion action across every surface (light /
+              dark / scrolled). */}
+          <Link
+            href="/preorder"
+            aria-current={preorderActive ? 'page' : undefined}
+            className={`navbar-item hidden rounded-full border px-5 py-2 text-[10px] font-bold uppercase tracking-[0.3em] transition-all duration-300 md:inline-flex ${
+              preorderActive
+                ? 'border-[#FF5722] bg-[#FF5722] text-black'
+                : 'border-[#FF5722]/70 text-[#FF5722] hover:bg-[#FF5722] hover:text-black'
             }`}
           >
-            {isScrolled ? '' : 'Get in touch'}
-          </button>
+            Preorder
+          </Link>
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
             className={`rounded-full border px-6 py-2 text-[10px] font-bold uppercase tracking-[0.3em] transition-all duration-300 md:hidden ${
-              isPressRoute
+              isLightSurface
                 ? 'border-[#1A1A1A]/20 text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-[#FEFEFE]'
                 : 'border-white/20 text-white hover:bg-white hover:text-black'
             }`}
@@ -210,7 +239,7 @@ export const Navbar = () => {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(true)}
             className={`fixed right-4 top-5 z-[101] flex h-11 w-11 items-center justify-center rounded-full border shadow-lg backdrop-blur-md md:hidden ${
-              isPressRoute
+              isLightSurface
                 ? 'border-[#1A1A1A]/20 bg-[#FEFEFE]/92 text-[#1A1A1A]'
                 : 'border-white/20 bg-black/80 text-white'
             }`}
@@ -232,7 +261,7 @@ export const Navbar = () => {
             exit={{opacity: 0}}
             transition={{duration: 0.2}}
             className={`fixed inset-0 z-[102] backdrop-blur-md md:hidden ${
-              isPressRoute ? 'bg-[#FEFEFE]/96' : 'bg-black/96'
+              isLightSurface ? 'bg-[#FEFEFE]/96' : 'bg-black/96'
             }`}
             onClick={() => setMenuOpen(false)}
           >
@@ -257,7 +286,7 @@ export const Navbar = () => {
                   aria-label="Close menu"
                   onClick={() => setMenuOpen(false)}
                   className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors ${
-                    isPressRoute
+                    isLightSurface
                       ? 'border-[#1A1A1A]/15 text-[#1A1A1A] hover:border-[#1A1A1A]/35'
                       : 'border-white/15 text-white hover:border-white/40'
                   }`}
@@ -267,30 +296,34 @@ export const Navbar = () => {
               </div>
 
               <nav className="flex flex-1 flex-col gap-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item}
-                    href="/"
-                    onClick={() => setMenuOpen(false)}
-                    className={`navbar-item border-b py-4 text-lg font-bold uppercase tracking-[0.2em] transition-colors hover:text-[#FF5722] ${
-                      isPressRoute
-                        ? 'border-[#1A1A1A]/[0.08] text-[#1A1A1A]/90'
+                <Link
+                  href="/about"
+                  onClick={(e) => {
+                    if (!isAboutRoute) {
+                      onAboutNav(e);
+                    }
+                    setMenuOpen(false);
+                  }}
+                  className={`navbar-item border-b py-4 text-lg font-bold uppercase tracking-[0.2em] transition-colors hover:text-[#FF5722] ${
+                    isLightSurface
+                      ? 'border-[#1A1A1A]/[0.08] text-[#1A1A1A]/90'
+                      : aboutActive
+                        ? 'border-white/[0.08] text-[#FF6B00]'
                         : 'border-white/[0.08] text-white/90'
-                    }`}
-                  >
-                    {item}
-                  </Link>
-                ))}
+                  }`}
+                >
+                  About
+                </Link>
                 <Link
                   href="/press"
                   onClick={(e) => {
-                    if (!isPressRoute) {
+                    if (!isPressRoute && !isArchiveRoute) {
                       onPressNav(e);
                     }
                     setMenuOpen(false);
                   }}
                   className={`navbar-item border-b py-4 text-lg font-bold uppercase tracking-[0.2em] transition-colors hover:text-[#FF5722] ${
-                    isPressRoute
+                    isLightSurface
                       ? pressActive
                         ? 'border-[#1A1A1A]/[0.08] text-[#FF5722]'
                         : 'border-[#1A1A1A]/[0.08] text-[#1A1A1A]/90'
@@ -299,37 +332,32 @@ export const Navbar = () => {
                 >
                   Press
                 </Link>
+                <Link
+                  href="/archive"
+                  onClick={() => setMenuOpen(false)}
+                  className={`navbar-item border-b py-4 text-lg font-bold uppercase tracking-[0.2em] transition-colors hover:text-[#FF5722] ${
+                    isLightSurface
+                      ? archiveActive
+                        ? 'border-[#1A1A1A]/[0.08] text-[#FF5722]'
+                        : 'border-[#1A1A1A]/[0.08] text-[#1A1A1A]/90'
+                      : 'border-white/[0.08] text-white/90'
+                  }`}
+                >
+                  Archive
+                </Link>
+                <Link
+                  href="/preorder"
+                  onClick={() => setMenuOpen(false)}
+                  aria-current={preorderActive ? 'page' : undefined}
+                  className="navbar-item mt-6 inline-flex items-center justify-center rounded-full border border-[#FF5722] bg-[#FF5722] py-4 text-lg font-bold uppercase tracking-[0.2em] text-black transition-colors hover:bg-[#FF5722]/90"
+                >
+                  Preorder
+                </Link>
               </nav>
-
-              <button
-                type="button"
-                className={`mt-4 w-full rounded-full border py-4 text-center text-[11px] font-bold uppercase tracking-[0.35em] transition-colors ${
-                  isPressRoute
-                    ? 'border-[#1A1A1A]/20 text-[#1A1A1A] hover:border-[#FF5722] hover:text-[#FF5722]'
-                    : 'border-white/25 text-white hover:border-[#FF5722] hover:text-[#FF5722]'
-                }`}
-              >
-                Get in touch
-              </button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {effectivePastHero && !menuOpen && !isPressRoute && (
-        <div
-          className="pointer-events-none fixed left-0 top-0 -z-10 h-px w-px overflow-hidden opacity-0"
-          aria-hidden
-        >
-          <span className="navbar-logo">ETX</span>
-          {navItems.map((item) => (
-            <span key={item} className="navbar-item">
-              {item}
-            </span>
-          ))}
-          <span className="navbar-item">Press</span>
-        </div>
-      )}
     </>
   );
 };

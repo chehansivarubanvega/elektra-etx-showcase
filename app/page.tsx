@@ -92,7 +92,7 @@ export default function Home() {
     mainTl.fromTo(
       '.metrics-bg',
       { autoAlpha: 0, scale: 1.08 },
-      { autoAlpha: 0.55, scale: 1, duration: 1.5, ease: 'power2.out' },
+      { autoAlpha: 0.7, scale: 1, duration: 1.5, ease: 'power2.out' },
       "<"
     );
     mainTl.fromTo('.metric-item', 
@@ -101,13 +101,22 @@ export default function Home() {
       "<0.5"
     );
 
+    // Hold the Sigiriya backdrop on-screen so the user actually reads it
+    // before the urban transition swaps it out.
+    mainTl.to('.metrics-bg', { autoAlpha: 0.7, duration: 3.5 }, ">");
+
     // 3. Metrics -> Urban Transition
-    mainTl.to('.metrics-sidebar', { autoAlpha: 0, x: -50, duration: 1 }, "+=1");
-    mainTl.to('.metrics-bg', { autoAlpha: 0, scale: 1.04, duration: 1, ease: 'power2.inOut' }, "<");
+    mainTl.to('.metrics-sidebar', { autoAlpha: 0, x: -50, duration: 1.2 }, "+=0.4");
+    mainTl.to('.metrics-bg', { autoAlpha: 0, scale: 1.04, duration: 1.8, ease: 'power2.inOut', force3D: true }, "<");
+    // NOTE: avoid animating CSS `filter` / `backdrop-filter` on full-viewport
+    // elements — they force a CPU pass each frame and were the main cause of
+    // jank between the urban beat and the daylight reveal. We compose the
+    // same look with transform + opacity (GPU-only) and a separate blur
+    // overlay layer that only fades.
     mainTl.fromTo(
       '.urban-bg-image',
-      { autoAlpha: 0, scale: 1.16, yPercent: 8, filter: 'blur(14px) brightness(0.45) saturate(1.3)' },
-      { autoAlpha: 0.78, scale: 1, yPercent: 0, filter: 'blur(0px) brightness(0.92) saturate(1.08)', duration: 1.8, ease: 'power4.out' },
+      { autoAlpha: 0, scale: 1.16, yPercent: 8 },
+      { autoAlpha: 0.78, scale: 1, yPercent: 0, duration: 1.8, ease: 'power4.out', force3D: true },
       "<0.1"
     );
     mainTl.fromTo(
@@ -116,13 +125,13 @@ export default function Home() {
       { autoAlpha: 1, duration: 1.4, ease: 'power2.out' },
       "<"
     );
-    
-    mainTl.fromTo('.urban-sidebar', 
+
+    mainTl.fromTo('.urban-sidebar',
       { autoAlpha: 0, x: 50 },
       { autoAlpha: 1, x: 0, pointerEvents: 'auto', duration: 1.5 },
       ">"
     );
-    mainTl.fromTo('.urban-text-stagger', 
+    mainTl.fromTo('.urban-text-stagger',
       { autoAlpha: 0, y: 30 },
       { autoAlpha: 1, y: 0, stagger: 0.1, duration: 1 },
       "<0.5"
@@ -130,33 +139,39 @@ export default function Home() {
 
     // 4. Urban -> Charging Transition
     mainTl.to('.urban-sidebar', { autoAlpha: 0, x: 100, duration: 1 }, "+=1");
-    mainTl.to('.urban-bg-image', { autoAlpha: 0, scale: 1.04, yPercent: -3, duration: 1, ease: 'power2.inOut' }, "<");
+    mainTl.to('.urban-bg-image', { autoAlpha: 0, scale: 1.04, yPercent: -3, duration: 1, ease: 'power2.inOut', force3D: true }, "<");
     mainTl.to('.urban-bg-overlay, .urban-bg-glow', { autoAlpha: 0, duration: 1, ease: 'power2.inOut' }, "<");
-    
+
     // Hold an empty transition beat: only the 3D model drives across
     mainTl.to({}, { duration: 2.2 });
 
     // 5. Daylight / Freedom Section
-    mainTl.to(containerRef.current, {
-      backgroundColor: '#ffffff',
+    // Animating the section's `background-color` repaints every descendant
+    // of the pinned hero each frame (text shadows, 3D canvas overlay, HUD).
+    // Fade a dedicated white overlay div instead — this stays on its own
+    // compositor layer and only the alpha is interpolated.
+    mainTl.to('.daylight-flood', {
+      autoAlpha: 1,
       duration: 1.5,
-      ease: "power2.inOut"
+      ease: 'power2.inOut',
     }, ">");
 
-    mainTl.fromTo('.daylight-sidebar', 
+    mainTl.fromTo('.daylight-sidebar',
       { autoAlpha: 0, y: 50 },
       { autoAlpha: 1, y: 0, pointerEvents: 'auto', duration: 1.5 },
       "<"
     );
 
-    mainTl.fromTo('.daylight-text-stagger', 
+    mainTl.fromTo('.daylight-text-stagger',
       { autoAlpha: 0, y: 30 },
       { autoAlpha: 1, y: 0, stagger: 0.2, duration: 1, ease: "power2.out" },
       "<0.5"
     );
 
     mainTl.to('.navbar-logo, .navbar-item', { color: '#000000', duration: 0.5 }, "<");
-    mainTl.to('.bg-text', { color: '#000000', autoAlpha: 0.05, duration: 1 }, "<");
+    // `.bg-text` carries a 12-layer text-shadow stack and was hidden during
+    // the hero→metrics beat. Re-showing + recoloring it here would force a
+    // full text repaint per scroll frame — leave it hidden.
     mainTl.to('.daylight-sidebar', { autoAlpha: 0, duration: 1 }, ">+=1.5");
 
   }, { scope: containerRef });
@@ -182,19 +197,62 @@ export default function Home() {
       >
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/sigiriya.png')" }}
+          style={{ backgroundImage: "url('/images/sigiriya.png')", willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         />
-        <div className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-gradient-to-b from-black/90 via-black/75 to-black/85" />
+        <div
+          className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-gradient-to-b from-black/90 via-black/75 to-black/85"
+          style={{ willChange: 'opacity' }}
+        />
         <div
           className="urban-bg-image absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/city.png')" }}
+          style={{ backgroundImage: "url('/images/city.png')", willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         />
-        <div className="urban-bg-overlay absolute inset-0 z-0 opacity-0 pointer-events-none bg-gradient-to-b from-black/85 via-black/55 to-black/82" />
-        <div className="urban-bg-glow absolute inset-0 z-0 opacity-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(255,107,0,0.16)_0%,rgba(0,0,0,0)_55%)]" />
+        <div
+          className="urban-bg-overlay absolute inset-0 z-0 opacity-0 pointer-events-none bg-gradient-to-b from-black/85 via-black/55 to-black/82"
+          style={{ willChange: 'opacity' }}
+        />
+        <div
+          className="urban-bg-glow absolute inset-0 z-0 opacity-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(255,107,0,0.16)_0%,rgba(0,0,0,0)_55%)]"
+          style={{ willChange: 'opacity' }}
+        />
+        {/* Daylight white-out flood. Sits below the 3D canvas (z-10) so the
+            vehicle continues to read once the background turns white, but
+            above the urban backdrops so the city photo is fully covered.
+            Animating just this layer's alpha is dramatically cheaper than
+            recoloring the section's `background-color`. */}
+        <div
+          className="daylight-flood absolute inset-0 z-[5] opacity-0 pointer-events-none bg-white"
+          style={{ willChange: 'opacity' }}
+        />
 
-        {/* Background "ETX" Text */}
-        <div className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[15vh] pointer-events-none z-0">
-          <h1 className="bg-text max-w-full text-[clamp(5.5rem,36vw,26.25rem)] font-[900] tracking-[-0.05em] leading-[1] text-white/[0.15] select-none font-sans uppercase md:text-[420px]">
+        {/* Background "ETX" Text — looming 3D wordmark */}
+        <div
+          className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[15vh] pointer-events-none z-0"
+          style={{ perspective: '1400px', perspectiveOrigin: '50% 80%' }}
+        >
+          <h1
+            className="bg-text max-w-full text-[clamp(5.5rem,36vw,26.25rem)] font-[900] tracking-[-0.05em] leading-[1] select-none font-sans uppercase md:text-[420px]"
+            style={{
+              color: '#f4f6fb',
+              transform: 'translateZ(160px) scale(1.04)',
+              transformOrigin: '50% 65%',
+              willChange: 'transform, opacity',
+              textShadow: [
+                '0 -1px 0 rgba(255,255,255,0.55)',
+                '0 1px 0 rgba(70,75,90,0.95)',
+                '0 2px 0 rgba(60,64,78,0.92)',
+                '0 4px 0 rgba(48,52,66,0.9)',
+                '0 7px 0 rgba(36,40,54,0.88)',
+                '0 11px 0 rgba(26,30,42,0.86)',
+                '0 16px 0 rgba(18,22,32,0.84)',
+                '0 22px 0 rgba(12,15,22,0.82)',
+                '0 30px 0 rgba(6,8,14,0.78)',
+                '0 40px 60px rgba(0,0,0,0.95)',
+                '0 70px 120px rgba(0,0,0,0.85)',
+                '0 0 90px rgba(255,55,20,0.18)',
+              ].join(', '),
+            }}
+          >
             ETX
           </h1>
         </div>
