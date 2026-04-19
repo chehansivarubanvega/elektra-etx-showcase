@@ -11,37 +11,153 @@ type PressIndexProps = {
   articles: PressArticle[];
 };
 
+function PressWord({variant}: {variant: 'solid' | 'outline' | 'ghost'}) {
+  if (variant === 'ghost') {
+    return <span className="text-[#1A1A1A]/[0.14]">Press</span>;
+  }
+  if (variant === 'outline') {
+    return (
+      <span
+        className="text-transparent"
+        style={{
+          WebkitTextStroke: '1.25px rgba(26, 26, 26, 0.38)',
+        }}
+      >
+        Press
+      </span>
+    );
+  }
+  return <span className="text-[#1A1A1A]">Press</span>;
+}
+
+function PressHeroMegatype() {
+  const slash = <span className="mx-[0.08em] shrink-0 text-[#1A1A1A]/18 md:mx-[0.1em]">/</span>;
+
+  const row1: Array<'solid' | 'outline' | 'ghost' | 'slash'> = [
+    'solid',
+    'slash',
+    'outline',
+    'slash',
+    'ghost',
+    'slash',
+    'solid',
+    'slash',
+    'outline',
+  ];
+  const row2: Array<'solid' | 'outline' | 'ghost' | 'slash'> = [
+    'ghost',
+    'slash',
+    'solid',
+    'slash',
+    'outline',
+    'slash',
+    'ghost',
+  ];
+
+  const renderRow = (spec: Array<'solid' | 'outline' | 'ghost' | 'slash'>, keyPrefix: string) => (
+    <div className="flex flex-nowrap items-baseline justify-center whitespace-nowrap">
+      {spec.map((token, i) =>
+        token === 'slash' ? (
+          <React.Fragment key={`${keyPrefix}-s-${i}`}>{slash}</React.Fragment>
+        ) : (
+          <PressWord key={`${keyPrefix}-w-${i}`} variant={token} />
+        ),
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-start gap-1 overflow-hidden pt-[min(2vh,16px)] md:gap-2 md:pt-[min(3vh,22px)]"
+    >
+      <div
+        className="-translate-x-[4%] text-[clamp(2.75rem,14.5vw,11.5rem)] font-black uppercase leading-[0.78] tracking-[-0.045em] [font-family:var(--font-press-display),ui-sans-serif] md:-translate-x-[2%]"
+        style={{width: 'max(120%, 110vw)'}}
+      >
+        {renderRow(row1, 'r1')}
+      </div>
+      <div
+        className="translate-x-[6%] text-[clamp(2.5rem,12vw,9.5rem)] font-black uppercase leading-[0.78] tracking-[-0.045em] [font-family:var(--font-press-display),ui-sans-serif] md:translate-x-[4%]"
+        style={{width: 'max(120%, 110vw)'}}
+      >
+        {renderRow(row2, 'r2')}
+      </div>
+    </div>
+  );
+}
+
 export function PressIndex({articles}: PressIndexProps) {
   const total = String(articles.length).padStart(2, '0');
 
   return (
     <main className="bg-[#FEFEFE] text-[#1A1A1A]">
-      <section className="relative mx-auto max-w-[1600px] px-5 pb-16 pt-2 md:px-10 md:pb-24 md:pt-4">
-        <div className="relative grid min-h-[min(72vh,720px)] grid-cols-1 items-end gap-10 md:grid-cols-12 md:items-center">
-          <div className="relative z-10 md:col-span-6 md:col-start-1 md:row-start-1">
-            <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.45em] text-[#FF5722]">Press Hub</p>
-            <h1
-              className="relative w-[min(50vw,520px)] max-w-full text-[clamp(4.5rem,14vw,11rem)] font-bold uppercase leading-[0.82] tracking-[-0.04em] [font-family:var(--font-press-display),ui-sans-serif]"
-              style={{color: '#1A1A1A'}}
-            >
-              Press
-            </h1>
-            <p className="mt-8 max-w-md text-[13px] leading-relaxed text-[#1A1A1A]/55 md:text-[14px]">
-              Awards, alliances, and the engineering stories behind Colombo&apos;s electric three-wheeler.
-            </p>
-          </div>
+      <section className="relative overflow-hidden bg-[#FEFEFE] pb-14 pt-2 md:pb-20 md:pt-4">
+        <div className="relative mx-auto min-h-[min(82vh,880px)] max-w-[1800px] px-4 md:min-h-[min(85vh,940px)] md:px-8">
+          <PressHeroMegatype />
 
-          <div className="relative z-[1] flex justify-center md:col-span-7 md:col-start-5 md:row-start-1 md:justify-end">
-            <div className="relative w-full max-w-[720px] translate-y-4 md:-translate-y-6 md:translate-x-4">
-              <Image
-                src="/images/press_hero.png"
-                alt="Technical line drawing of the ETX dashboard and cockpit"
-                width={1200}
-                height={900}
-                priority
-                className="h-auto w-full object-contain mix-blend-multiply opacity-[0.92] contrast-[1.05]"
-                sizes="(min-width: 768px) 55vw, 100vw"
+          <div className="relative z-10 flex min-h-[min(74vh,800px)] flex-col items-center justify-start pt-[min(7vh,52px)] md:min-h-[min(78vh,840px)] md:pt-[min(9vh,68px)]">
+            {/* Pull sketch up into megatype so lines + type share one plane (multiply shows type through “paper”) */}
+            <div className="relative isolate z-10 w-full max-w-[min(94vw,960px)] -mt-[min(11vh,92px)] px-1 md:-mt-[min(15vh,128px)] md:max-w-[min(90vw,1000px)] md:px-2">
+              {/* Soft bloom — anchored to overlap band between type and drawing */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-[42%] z-[1] aspect-[6/5] w-[min(125%,1080px)] max-w-none -translate-x-1/2 -translate-y-1/2 md:top-[44%]"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 72% 64% at 50% 42%, rgba(252,252,252,0.94) 0%, rgba(254,254,254,0.45) 48%, rgba(254,254,254,0) 76%)',
+                }}
               />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-[48%] z-[1] h-[min(100vw,920px)] w-[min(145vw,1500px)] -translate-x-1/2 -translate-y-1/2 opacity-70 md:top-[50%]"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 58% 52% at 50% 44%, rgba(254,254,254,0.28) 0%, rgba(254,254,254,0) 68%)',
+                }}
+              />
+
+              <div
+                className="relative z-[2]"
+                style={{
+                  WebkitMaskImage:
+                    'radial-gradient(ellipse 108% 100% at 50% 42%, rgba(0,0,0,0.92) 0%, #000 28%, #000 62%, rgba(0,0,0,0.5) 78%, transparent 100%)',
+                  maskImage:
+                    'radial-gradient(ellipse 108% 100% at 50% 42%, rgba(0,0,0,0.92) 0%, #000 28%, #000 62%, rgba(0,0,0,0.5) 78%, transparent 100%)',
+                }}
+              >
+                <Image
+                  src="/images/press_hero.png"
+                  alt="Technical line drawing of the ETX dashboard and cockpit"
+                  width={1200}
+                  height={900}
+                  priority
+                  className="relative mx-auto h-auto w-full object-contain [mix-blend-mode:multiply]"
+                  style={{
+                    opacity: 0.88,
+                    filter:
+                      'brightness(1.06) contrast(0.96) grayscale(1) drop-shadow(0 -12px 48px rgba(254,254,254,0.55)) drop-shadow(0 4px 36px rgba(254,254,254,0.75)) drop-shadow(0 28px 64px rgba(26,26,26,0.04))',
+                  }}
+                  sizes="(min-width: 1024px) 1000px, 94vw"
+                />
+              </div>
+
+              {/* Light edge feather only — keeps corners soft without washing the overlap with type */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-[-6%] z-[3] mix-blend-normal"
+                style={{
+                  background:
+                    'radial-gradient(ellipse 92% 88% at 50% 48%, transparent 42%, rgba(254,254,254,0.22) 74%, rgba(254,254,254,0.55) 90%, #FEFEFE 100%)',
+                }}
+              />
+            </div>
+
+            <div className="relative z-20 mx-auto mt-6 max-w-lg px-2 text-center md:mt-8 md:max-w-xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.45em] text-[#FF5722]">Press Hub</p>
+              <p className="mt-4 text-[13px] leading-relaxed text-[#1A1A1A]/55 md:text-[15px] md:leading-relaxed">
+                Awards, alliances, and the engineering stories behind Colombo&apos;s electric three-wheeler.
+              </p>
             </div>
           </div>
         </div>
