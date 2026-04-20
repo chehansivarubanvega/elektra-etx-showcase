@@ -32,7 +32,6 @@ const remappedExactFrame = (p: number, pAlign: number) => {
 
 const DesignEngineering = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastScrollYRef = useRef(0);
   const powertrainHeadlineRef = useRef<HTMLHeadingElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
@@ -157,37 +156,52 @@ const DesignEngineering = () => {
     let cachedHH = 0;
     let cachedSectionTop = 0;
 
-    const sync = () => {
-      // BLOCK resizing during active scroll to prevent buffer clearing jitter.
-      // We only block if the canvas has already been initialized (canvasW > 0).
-      if (
-        canvasW > 0 &&
-        globalThis.window &&
-        globalThis.window.scrollY !== lastScrollYRef.current
-      ) {
-        lastScrollYRef.current = globalThis.window.scrollY;
-        return false;
-      }
+    /** True once the canvas has been sized at least once. */
+    let initialized = false;
+    /** Timer that debounces resize — only fires when scroll has been idle. */
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
+    /**
+     * Actually mutate the canvas buffer dimensions.
+     * Setting canvas.width/height clears the buffer, so we MUST redraw after.
+     */
+    const applySize = (w: number, h: number, nextDpr: number) => {
+      canvasW = w;
+      canvasH = h;
+      dpr = nextDpr;
+      canvas.width = w * nextDpr;
+      canvas.height = h * nextDpr;
+      context.setTransform(nextDpr, 0, 0, nextDpr, 0, 0);
+      lastDrawnIndex = -1; // force redraw
+    };
+
+    const sync = () => {
       const rect = canvas.getBoundingClientRect();
       const nextDpr = Math.min(globalThis.window?.devicePixelRatio ?? 1, 1.5);
       const w = Math.max(1, Math.floor(rect.width));
       const h = Math.max(1, Math.floor(rect.height));
 
-      // Increase tolerance to 4px to ignore typical iOS "elastic" layout shifts
-      const isSizeChanged = Math.abs(w - canvasW) > 4 || Math.abs(h - canvasH) > 4;
-      if (!isSizeChanged && nextDpr === dpr) return false;
+      if (!initialized) {
+        // First sizing — must happen immediately so the canvas isn't a black hole.
+        applySize(w, h, nextDpr);
+        initialized = true;
+        return;
+      }
 
-      canvasW = w;
-      canvasH = h;
-      dpr = nextDpr;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      lastDrawnIndex = -1;
-      return true;
+      // After initialization, only resize if the change is significant (>8px)
+      // to absorb iOS URL-bar elastic layout jitter which causes sub-pixel oscillation.
+      const isSizeChanged = Math.abs(w - canvasW) > 8 || Math.abs(h - canvasH) > 8;
+      const isDprChanged = nextDpr !== dpr;
+      if (!isSizeChanged && !isDprChanged) return;
+
+      // DEBOUNCE: wait 200ms for scroll to settle before re-allocating the buffer.
+      // This prevents the clear-flash-redraw cycle that causes iOS flickering.
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        applySize(w, h, nextDpr);
+        // Force redraw immediately after resize so buffer is never blank.
+        lastDrawnIndex = -1;
+      }, 200);
     };
 
     const layoutForImage = (img: HTMLImageElement, w: number, h: number) => {
@@ -312,11 +326,12 @@ const DesignEngineering = () => {
     globalThis.window.addEventListener("resize", refreshLayoutCache);
 
     return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
       globalThis.window.cancelAnimationFrame(animationId);
       globalThis.window.removeEventListener("resize", refreshLayoutCache);
       resizeObserver?.disconnect();
     };
-  }, [imagesReady, scrollYProgress]);
+  }, [imagesReady, smoothProgress]);
 
   const storyBlocks = [
     {
@@ -418,6 +433,7 @@ const DesignEngineering = () => {
                 <canvas
                   ref={canvasRef}
                   className="block max-h-full min-h-0 w-full min-w-0 flex-1 md:min-h-0"
+                  style={{ willChange: "transform" }}
                 />
               </div>
 

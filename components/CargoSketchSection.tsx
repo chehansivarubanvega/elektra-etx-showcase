@@ -144,7 +144,6 @@ const CargoSketchSection = () => {
     lineOpacity3,
     lineOpacity4,
   ];
-  const lastScrollYRef = useRef(0);
   const lineTranslates = [lineY0, lineY1, lineY2, lineY3, lineY4];
   const lineBlurs = [lineBlur0, lineBlur1, lineBlur2, lineBlur3, lineBlur4];
 
@@ -229,37 +228,54 @@ const CargoSketchSection = () => {
     let dpr = 1;
     let lastIdx = -1;
 
-    const sync = () => {
-      // BLOCK resizing during active scroll to prevent buffer clearing jitter.
-      // We only block if the canvas has already been initialized (cW > 0).
-      if (
-        cW > 0 &&
-        globalThis.window &&
-        Math.abs(globalThis.window.scrollY - lastScrollYRef.current) > 2
-      ) {
-        lastScrollYRef.current = globalThis.window.scrollY;
-        return;
-      }
-      lastScrollYRef.current = globalThis.window?.scrollY || 0;
+    /** True once the canvas has been sized at least once. */
+    let initialized = false;
+    /** Timer that debounces resize — only fires when scroll has been idle. */
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
+    /**
+     * Actually mutate the canvas buffer dimensions.
+     * Setting canvas.width/height clears the buffer, so we MUST redraw after.
+     */
+    const applySize = (w: number, h: number, nextDpr: number) => {
+      cW = w;
+      cH = h;
+      dpr = nextDpr;
+      canvas.width = w * nextDpr;
+      canvas.height = h * nextDpr;
+      ctx.setTransform(nextDpr, 0, 0, nextDpr, 0, 0);
+      lastIdx = -1; // force redraw on next change event
+    };
+
+    const sync = () => {
       const rect = canvas.getBoundingClientRect();
       const nextDpr = Math.min(globalThis.window?.devicePixelRatio ?? 1, 1.75);
       const w = Math.max(1, Math.floor(rect.width));
       const h = Math.max(1, Math.floor(rect.height));
 
-      // Increase tolerance to 4px to ignore typical iOS "elastic" layout shifts
-      const isSizeChanged = Math.abs(w - cW) > 4 || Math.abs(h - cH) > 4;
-      if (!isSizeChanged && nextDpr === dpr) return;
+      if (!initialized) {
+        // First sizing — must happen immediately so the canvas isn't a black hole.
+        applySize(w, h, nextDpr);
+        initialized = true;
+        return;
+      }
 
-      cW = w;
-      cH = h;
-      dpr = nextDpr;
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      canvas.style.width = `${w}px`;
-      canvas.style.height = `${h}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      lastIdx = -1;
+      // After initialization, only resize if the change is significant (>8px)
+      // to absorb iOS URL-bar elastic layout jitter which causes sub-pixel oscillation.
+      const isSizeChanged = Math.abs(w - cW) > 8 || Math.abs(h - cH) > 8;
+      const isDprChanged = nextDpr !== dpr;
+      if (!isSizeChanged && !isDprChanged) return;
+
+      // DEBOUNCE: wait 200ms for scroll to settle before re-allocating the buffer.
+      // This prevents the clear-flash-redraw cycle that causes iOS flickering.
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        applySize(w, h, nextDpr);
+        // Immediately redraw after resize so buffer is never blank.
+        const v = smoothFrame.get();
+        const idx = Math.min(LAST_FRAME, Math.max(0, Math.round(v * LAST_FRAME)));
+        draw(idx);
+      }, 200);
     };
 
     const draw = (idx: number) => {
@@ -302,6 +318,7 @@ const CargoSketchSection = () => {
     });
 
     return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
       ro?.disconnect();
       unsub();
     };
@@ -539,6 +556,7 @@ const CargoSketchSection = () => {
                 <canvas
                   ref={canvasRef}
                   className="block h-full min-h-0 w-full min-w-0 md:absolute md:inset-0"
+                  style={{ willChange: "transform" }}
                 />
               </div>
 
