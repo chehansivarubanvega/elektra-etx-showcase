@@ -227,7 +227,7 @@ export default function Home() {
       <section
         ref={containerRef}
         data-snap-stage="hero"
-        className="relative min-h-[100svh] h-[100dvh] w-full min-w-0 max-w-full overflow-hidden bg-black"
+        className="relative min-h-[100svh] h-[100svh] w-full min-w-0 max-w-full overflow-hidden bg-black"
       >
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"

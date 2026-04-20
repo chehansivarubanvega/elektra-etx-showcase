@@ -314,6 +314,7 @@ const CargoSketchSection = () => {
       {/* The sticky stage = what the viewer actually sees during the scrub. */}
       <div
         ref={stageRef}
+        data-snap-sticky="true"
         className="sticky top-0 h-[100svh] w-full overflow-hidden"
         style={{ transform: "translateZ(0)" }}
       >

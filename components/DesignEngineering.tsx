@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useSpring, useTransform } from "motion/react";
 
 const TOTAL_FRAMES = 40;
 const LAST_FRAME = TOTAL_FRAMES - 1;
@@ -44,6 +44,17 @@ const DesignEngineering = () => {
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
+  });
+
+  /**
+   * Spring-smoothed progress — the "ink-drag" feel that absorbs micro-jitter 
+   * from high-frequency iOS scroll events.
+   */
+  const smoothProgress = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 30,
+    mass: 0.2,
+    restDelta: 0.0001,
   });
 
   const mobileProgressWidth = useTransform(
@@ -270,7 +281,8 @@ const DesignEngineering = () => {
     };
 
     const render = () => {
-      const p = Math.min(1, Math.max(0, scrollYProgress.get()));
+      // Use the smoothed progress to prevent "vibration" between adjacent frames
+      const p = Math.min(1, Math.max(0, smoothProgress.get()));
       const pAlign = computePowertrainAlignProgress();
       const targetExact = remappedExactFrame(p, pAlign);
       let frameIndex = Math.min(
