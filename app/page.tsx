@@ -34,11 +34,21 @@ export default function Home() {
     ScrollTrigger.config({ ignoreMobileResize: true });
     gsap.ticker.lagSmoothing(500, 33);
 
+    /** Desktop keeps a long scrub runway; narrow viewports need a shorter pin
+     *  or Safari ends up with ~5× the viewport in native scroll before the
+     *  next section — especially punishing on large iPhones with snap + rubber-band. */
+    const heroPinEnd = () =>
+      typeof globalThis.window !== 'undefined' &&
+      globalThis.window.matchMedia('(max-width: 767px)').matches
+        ? '+=235%'
+        : '+=500%';
+
     const mainTl = gsap.timeline({
       scrollTrigger: {
+        id: 'etx-hero-pin',
         trigger: containerRef.current,
         start: 'top top',
-        end: '+=500%',
+        end: heroPinEnd,
         scrub: 0.6,
         pin: true,
         pinSpacing: true,

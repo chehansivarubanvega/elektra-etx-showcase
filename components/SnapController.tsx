@@ -68,7 +68,9 @@ const CARGO_POINTS = [0.08, 0.32, 0.6, 0.87];
 const MOBILE_MQ = '(max-width: 767px)';
 const ANIM_COOLDOWN_MS = 160;
 const WHEEL_THRESHOLD = 6;
-const TOUCH_DIST_THRESHOLD = 42;
+const TOUCH_DIST_THRESHOLD_DESKTOP = 42;
+/** Slightly lower on phones so deliberate swipes register as “next stage” more often. */
+const TOUCH_DIST_THRESHOLD_MOBILE = 30;
 const TOUCH_VELOCITY_THRESHOLD = 0.3;
 /** Gap between bottom of sticky column and anchor top on mobile. */
 const MOBILE_STICKY_GAP_PX = 8;
@@ -104,10 +106,13 @@ export default function SnapController() {
         document.documentElement.scrollHeight - window.innerHeight,
       );
 
-    const findHeroTrigger = (heroEl: HTMLElement) =>
-      ScrollTrigger.getAll().find(
+    const findHeroTrigger = (heroEl: HTMLElement) => {
+      const byId = ScrollTrigger.getById('etx-hero-pin');
+      if (byId && (byId.trigger === heroEl || byId.pin === heroEl)) return byId;
+      return ScrollTrigger.getAll().find(
         (t) => t.trigger === heroEl || t.pin === heroEl,
       );
+    };
 
     const isMobileViewport = () =>
       typeof window.matchMedia !== 'undefined' &&
@@ -549,10 +554,13 @@ export default function SnapController() {
       const dy = touchStartY - endY;
       const dt = Math.max(1, performance.now() - touchStartT);
       const velocity = Math.abs(dy) / dt;
+      const touchDistThreshold = isMobileViewport()
+        ? TOUCH_DIST_THRESHOLD_MOBILE
+        : TOUCH_DIST_THRESHOLD_DESKTOP;
       // Small/slow swipes: settle at the closest stage so the page
       // doesn't end up mid-stage from the little bit of touch drift.
       if (
-        dy < TOUCH_DIST_THRESHOLD &&
+        dy < touchDistThreshold &&
         velocity < TOUCH_VELOCITY_THRESHOLD
       ) {
         goTo(closestStageIndex());
