@@ -625,6 +625,32 @@ export default function SnapController() {
     const prevOverscroll = document.documentElement.style.overscrollBehaviorY;
     document.documentElement.style.overscrollBehaviorY = 'none';
 
+    /** Safari / iOS: URL bar & overlay UI change the visual viewport without a
+     *  reliable window `resize`; pin + snap math must refresh or scrub length drifts. */
+    let vvRefreshTimer = 0;
+    const scheduleViewportRefresh = () => {
+      window.clearTimeout(vvRefreshTimer);
+      vvRefreshTimer = window.setTimeout(() => {
+        ScrollTrigger.refresh();
+        buildStages();
+      }, 100);
+    };
+
+    const visualViewport = window.visualViewport;
+    if (visualViewport) {
+      visualViewport.addEventListener('resize', scheduleViewportRefresh);
+      visualViewport.addEventListener('scroll', scheduleViewportRefresh);
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+        buildStages();
+      });
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -636,6 +662,12 @@ export default function SnapController() {
     return () => {
       window.clearTimeout(initTimer);
       window.clearTimeout(resizeTimer);
+      window.clearTimeout(vvRefreshTimer);
+      if (visualViewport) {
+        visualViewport.removeEventListener('resize', scheduleViewportRefresh);
+        visualViewport.removeEventListener('scroll', scheduleViewportRefresh);
+      }
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       ScrollTrigger.removeEventListener('refreshInit', onRefresh);
       ScrollTrigger.removeEventListener('refresh', onRefresh);
       window.removeEventListener('resize', onResize);

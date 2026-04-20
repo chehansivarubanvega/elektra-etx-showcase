@@ -31,7 +31,10 @@ export default function Home() {
   useGSAP(() => {
     if (!containerRef.current) return;
 
-    ScrollTrigger.config({ ignoreMobileResize: true });
+    // Safari (iOS + macOS): `ignoreMobileResize: true` leaves pin/end math stale
+    // when the URL bar or tab chrome changes the visual viewport — the hero
+    // scrub distance and snap targets drift. Prefer live resizes + refresh below.
+    ScrollTrigger.config({ ignoreMobileResize: false });
     gsap.ticker.lagSmoothing(500, 33);
 
     /** Desktop keeps a long scrub runway; narrow viewports need a shorter pin
@@ -193,6 +196,17 @@ export default function Home() {
     // full text repaint per scroll frame — leave it hidden.
     mainTl.to('.daylight-sidebar', { autoAlpha: 0, duration: 1 }, ">+=1.5");
 
+    // WebKit often lays out the pin before the dynamic toolbar height is final;
+    // double refresh after commit avoids a mismatched scrub length on first paint.
+    queueMicrotask(() => {
+      requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+        requestAnimationFrame(() => {
+          ScrollTrigger.refresh();
+        });
+      });
+    });
+
   }, { scope: containerRef });
 
   const metrics = [
@@ -212,7 +226,7 @@ export default function Home() {
       <section
         ref={containerRef}
         data-snap-stage="hero"
-        className="relative h-screen w-full min-w-0 max-w-full overflow-hidden bg-black"
+        className="relative min-h-[100svh] h-[100dvh] w-full min-w-0 max-w-full overflow-hidden bg-black"
       >
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
