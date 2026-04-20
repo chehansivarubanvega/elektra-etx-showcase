@@ -617,6 +617,11 @@ export const PreorderConfigurator = () => {
       : "active";
   const fleetStatus: "active" | "complete" | "locked" = !isStageReached("quantity")
     ? "locked"
+    : stage === "submit"
+      ? "complete"
+      : "active";
+
+  return (
     <main className="relative min-h-[100svh] w-full overflow-x-hidden bg-black text-white selection:bg-[#FF5722] selection:text-white md:overflow-hidden">
       {/* Background grid + corner brackets — desktop-only HUD chrome. */}
       <div
