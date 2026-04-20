@@ -32,6 +32,7 @@ const remappedExactFrame = (p: number, pAlign: number) => {
 
 const DesignEngineering = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastScrollYRef = useRef(0);
   const powertrainHeadlineRef = useRef<HTMLHeadingElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
@@ -144,7 +145,6 @@ const DesignEngineering = () => {
     let cachedSH = 0;
     let cachedHH = 0;
     let cachedSectionTop = 0;
-    const lastScrollYRef = useRef(0);
 
     const sync = () => {
       // BLOCK resizing during active scroll to prevent buffer clearing jitter
