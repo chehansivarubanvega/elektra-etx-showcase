@@ -58,7 +58,7 @@ const DesignEngineering = () => {
   });
 
   const mobileProgressWidth = useTransform(
-    scrollYProgress,
+    smoothProgress,
     [0, 1],
     ["0%", "100%"],
   );
