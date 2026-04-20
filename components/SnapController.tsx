@@ -75,6 +75,17 @@ const TOUCH_VELOCITY_THRESHOLD = 0.3;
 /** Gap between bottom of sticky column and anchor top on mobile. */
 const MOBILE_STICKY_GAP_PX = 8;
 
+/** True on any iOS / iPadOS device. All browsers on iOS run WebKit, where
+ *  `touchmove.preventDefault()` is unreliable due to the "fast scroll"
+ *  optimisation that marks early touch-move events as non-cancelable.
+ *  The snap controller uses a scroll-idle settler on these devices as a
+ *  safety net so that stage-to-stage navigation works even when the
+ *  touch-event hijack silently fails. */
+const isIOS =
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
 export default function SnapController() {
   const stagesRef = useRef<Stage[]>([]);
   const currentRef = useRef(0);
@@ -397,9 +408,12 @@ export default function SnapController() {
       animatingRef.current = true;
       currentRef.current = target;
       gsap.to(window, {
-        // autoKill: true lets a user cancel the snap by scrolling / wheeling
-        // during the animation (e.g. to immediately scroll up natively).
-        scrollTo: { y: targetY, autoKill: true },
+        // autoKill lets the user cancel a snap by scrolling / wheeling during
+        // the animation. On iOS it is disabled because WebKit's lingering
+        // momentum scroll fires spurious scroll events that would kill every
+        // tween immediately. Users can still cancel on iOS by touching the
+        // screen (onTouchStart kills in-flight tweens explicitly).
+        scrollTo: { y: targetY, autoKill: !isIOS },
         duration: stage.duration,
         ease: 'power2.inOut',
         overwrite: true,
@@ -585,6 +599,51 @@ export default function SnapController() {
       touchIntent = null;
     };
 
+    // ─── iOS scroll-idle settler ──────────────────────────────────────
+    // On iOS, `touchmove.preventDefault()` is unreliable because WebKit's
+    // "fast scroll" optimisation often marks early touch-move events as
+    // non-cancelable. When the prevention fails, native scroll plus
+    // inertia proceeds and the GSAP snap tween either never fires or gets
+    // killed by autoKill immediately. To compensate, we listen for
+    // `scroll` events and, once the page has been idle for ~200 ms,
+    // settle the viewport to the nearest snap stage. The settler only
+    // activates on iOS devices; all other platforms rely on the direct
+    // touch / wheel / key handlers above.
+    let scrollIdleTimer = 0;
+
+    const onScrollSettle = () => {
+      if (disabledRef.current) return;
+      if (!isIOS) return;
+      if (isNativeMobileScrollZone()) return;
+
+      // Don't compete with our own tween
+      if (gsap.isTweening(window)) {
+        window.clearTimeout(scrollIdleTimer);
+        return;
+      }
+
+      window.clearTimeout(scrollIdleTimer);
+      scrollIdleTimer = window.setTimeout(() => {
+        if (gsap.isTweening(window)) return;
+        if (touchActive) return;
+        if (isNativeMobileScrollZone()) return;
+
+        const idx = closestStageIndex();
+        const stage = stagesRef.current[idx];
+        if (!stage) return;
+        const targetY = stage.getY();
+
+        // Only re-snap when we've drifted meaningfully from a stage
+        // position. 20 px filters out sub-pixel rounding noise and
+        // tiny touch jitter that shouldn't trigger a visible animation.
+        if (Math.abs(window.scrollY - targetY) > 20) {
+          goTo(idx);
+        }
+      }, 200);
+    };
+
+    window.addEventListener('scroll', onScrollSettle, { passive: true });
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         const next = !disabledRef.current;
@@ -677,6 +736,8 @@ export default function SnapController() {
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
       window.removeEventListener('touchcancel', onTouchCancel);
+      window.removeEventListener('scroll', onScrollSettle);
+      window.clearTimeout(scrollIdleTimer);
       window.removeEventListener('keydown', onKey);
       window.removeEventListener(
         'etx:snap-to',
