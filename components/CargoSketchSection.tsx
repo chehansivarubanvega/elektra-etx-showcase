@@ -64,7 +64,7 @@ const PARAGRAPH_LINES = [
 
 /** Shared sizing for the sequence window + the HUD tether overlay so anchors stay aligned. */
 const CARGO_DISPLAY_SHELL_CLASS =
-  "relative h-[min(46dvh,440px)] w-[min(92vw,420px)] min-h-[240px] min-w-[240px] max-w-[420px] max-h-[min(46dvh,440px)] md:h-[min(56vh,500px)] md:w-[min(52vw,700px)] md:max-h-none md:min-h-[260px] md:min-w-[260px]";
+  "relative h-[min(46svh,440px)] w-[min(92vw,420px)] min-h-[240px] min-w-[240px] max-w-[420px] max-h-[min(46svh,440px)] md:h-[min(56vh,500px)] md:w-[min(52vw,700px)] md:max-h-none md:min-h-[260px] md:min-w-[260px]";
 
 const CargoSketchSection = () => {
   const sectionRef = useRef<HTMLElement>(null);
@@ -144,6 +144,7 @@ const CargoSketchSection = () => {
     lineOpacity3,
     lineOpacity4,
   ];
+  const lastScrollYRef = useRef(0);
   const lineTranslates = [lineY0, lineY1, lineY2, lineY3, lineY4];
   const lineBlurs = [lineBlur0, lineBlur1, lineBlur2, lineBlur3, lineBlur4];
 
@@ -229,11 +230,22 @@ const CargoSketchSection = () => {
     let lastIdx = -1;
 
     const sync = () => {
+      // BLOCK resizing during active scroll to prevent buffer clearing jitter
+      if (globalThis.window && Math.abs(globalThis.window.scrollY - lastScrollYRef.current) > 2) {
+        lastScrollYRef.current = globalThis.window.scrollY;
+        return;
+      }
+      lastScrollYRef.current = globalThis.window?.scrollY || 0;
+
       const rect = canvas.getBoundingClientRect();
       const nextDpr = Math.min(globalThis.window?.devicePixelRatio ?? 1, 1.75);
       const w = Math.max(1, Math.floor(rect.width));
       const h = Math.max(1, Math.floor(rect.height));
-      if (w === cW && h === cH && nextDpr === dpr) return;
+
+      // Increase tolerance to 4px to ignore typical iOS "elastic" layout shifts
+      const isSizeChanged = Math.abs(w - cW) > 4 || Math.abs(h - cH) > 4;
+      if (!isSizeChanged && nextDpr === dpr) return;
+
       cW = w;
       cH = h;
       dpr = nextDpr;
@@ -303,6 +315,7 @@ const CargoSketchSection = () => {
       <div
         ref={stageRef}
         className="sticky top-0 h-[100svh] w-full overflow-hidden"
+        style={{ transform: "translateZ(0)" }}
       >
         {/* ─── Ambient background layers ─────────────────────────────────── */}
 

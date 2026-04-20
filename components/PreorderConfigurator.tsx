@@ -617,12 +617,7 @@ export const PreorderConfigurator = () => {
       : "active";
   const fleetStatus: "active" | "complete" | "locked" = !isStageReached("quantity")
     ? "locked"
-    : stage === "submit"
-      ? "complete"
-      : "active";
-
-  return (
-    <main className="relative min-h-[100dvh] w-full overflow-x-hidden bg-black text-white selection:bg-[#FF5722] selection:text-white md:overflow-hidden">
+    <main className="relative min-h-[100svh] w-full overflow-x-hidden bg-black text-white selection:bg-[#FF5722] selection:text-white md:overflow-hidden">
       {/* Background grid + corner brackets — desktop-only HUD chrome. */}
       <div
         aria-hidden
@@ -655,7 +650,7 @@ export const PreorderConfigurator = () => {
       {/* 3D Canvas — pinned to the top 48vh on mobile, fills the viewport on
           desktop. Single instance (don't double-mount the GLB). */}
       <div
-        className="fixed inset-x-0 top-0 z-0 h-[48vh] md:absolute md:inset-0 md:h-auto"
+        className="fixed inset-x-0 top-0 z-0 h-[48svh] md:absolute md:inset-0 md:h-auto"
         onMouseEnter={() => setCursorOnCanvas(true)}
         onMouseLeave={() => setCursorOnCanvas(false)}
       >

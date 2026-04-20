@@ -209,12 +209,12 @@ const quoteLine =
 
 /** Inline size — guaranteed to be parsed as raw CSS. */
 const quoteLineStyle: React.CSSProperties = {
-  fontSize: "clamp(1.5rem, min(9.5vw, 11dvh), 6rem)",
+  fontSize: "clamp(1.5rem, min(9.5vw, 11svh), 6rem)",
 };
 
 /** Tighter quote scale for handheld — fits 6 lines without horizontal scroll. */
 const quoteLineStyleMobile: React.CSSProperties = {
-  fontSize: "clamp(1.35rem, min(7.2vw, 7.2dvh), 2.85rem)",
+  fontSize: "clamp(1.35rem, min(7.2vw, 7.2svh), 2.85rem)",
 };
 
 /** Mono micro-kicker (matches Press hub: text-[10px] font-semibold uppercase tracking-[0.42em]). */
@@ -240,7 +240,7 @@ function SerifAccent({ children }: Readonly<{ children: React.ReactNode }>) {
  */
 function ArchiveMobileLead() {
   return (
-    <div className="bg-[#F9F8F3] pb-4 pt-[max(0.75rem,2dvh)]">
+    <div className="bg-[#F9F8F3] pb-4 pt-[max(0.75rem,2svh)]">
       <div className="mx-auto flex w-full max-w-[520px] flex-col px-5">
         <div className="flex items-center justify-between gap-3">
           <p className={`${microKicker} text-[#1a1a1a]`}>Elektra ETX</p>
@@ -285,7 +285,7 @@ function ArchiveMobileLead() {
           width={1600}
           height={2000}
           sizes="100vw"
-          className="aspect-[4/5] max-h-[min(72dvh,520px)] w-full object-cover"
+          className="aspect-[4/5] max-h-[min(72svh,520px)] w-full object-cover"
           priority
           decoding="async"
         />
@@ -413,9 +413,9 @@ function HeroAndQuoteScrollTrack() {
    * URL bar makes `100vh > 100dvh`), which pushes the quote pane's top
    * above the viewport and clips the first lines.
    */
-  const stageY = useTransform(scrollYProgress, [0, 1], ["0dvh", "-100dvh"]);
+  const stageY = useTransform(scrollYProgress, [0, 1], ["0svh", "-100svh"]);
   const imgX = useTransform(scrollYProgress, [0, 1], ["26vw", "0vw"]);
-  const imgY = useTransform(scrollYProgress, [0, 1], ["-14dvh", "6dvh"]);
+  const imgY = useTransform(scrollYProgress, [0, 1], ["-14svh", "6svh"]);
   const imgScale = useTransform(scrollYProgress, [0, 1], [1.18, 0.92]);
 
   const hintOpacity = useTransform(
@@ -460,11 +460,11 @@ function HeroAndQuoteScrollTrack() {
         ref={trackRef}
         aria-label="Archive hero and feature quote"
         className="relative hidden w-full bg-[#F9F8F3] md:block"
-        style={{ height: "200dvh" }}
+        style={{ height: "200svh" }}
       >
-        <div className="sticky top-0 h-[100dvh] w-full overflow-hidden bg-[#F9F8F3]">
+        <div className="sticky top-0 h-[100svh] w-full overflow-hidden bg-[#F9F8F3]">
           {/* Ribbon — fixed inside sticky frame */}
-          <div className="absolute left-0 right-0 top-0 z-40 mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-5 pt-[max(0.5rem,1.4vh)] md:px-10">
+          <div className="absolute left-0 right-0 top-0 z-40 mx-auto flex w-full max-w-[1400px] items-center justify-between gap-4 px-5 pt-[max(0.5rem,1.4svh)] md:px-10">
             <p className={`${microKicker} text-[#1a1a1a]`}>Elektra ETX</p>
             <p className={`${microKicker} hidden text-black/45 sm:block`}>
               Sri Lanka · Since 2024
@@ -478,7 +478,7 @@ function HeroAndQuoteScrollTrack() {
             className="absolute inset-x-0 top-0 z-10 flex flex-col will-change-transform"
           >
             {/* ── PANE 1: HERO ── */}
-            <div className="relative flex h-[100dvh] w-full flex-col items-stretch justify-center overflow-hidden bg-[#F9F8F3] px-5 py-[max(64px,8dvh)] md:px-10">
+            <div className="relative flex h-[100svh] w-full flex-col items-stretch justify-center overflow-hidden bg-[#F9F8F3] px-5 py-[max(64px,8svh)] md:px-10">
               <div className="mx-auto flex w-full max-w-[1400px] flex-col">
                 <h1
                   className={`${displayHead} w-full text-center text-[clamp(4.5rem,20vw,18rem)]`}
@@ -506,7 +506,7 @@ function HeroAndQuoteScrollTrack() {
               fixed top ribbon + bottom scroll hint, and the inner stack uses
               `min-h-0` so flex justify-center can never push lines past the
               pane bounds. */}
-            <div className="relative flex h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[#F9F8F3] px-3 py-[max(56px,7dvh)] md:px-6">
+            <div className="relative flex h-[100svh] w-full flex-col items-center justify-center overflow-hidden bg-[#F9F8F3] px-3 py-[max(56px,7svh)] md:px-6">
               <div className="mx-auto flex min-h-0 w-full max-w-[1400px] flex-col items-center justify-center text-center">
                 <p className={quoteLine} style={quoteLineStyle}>
                   Since The First
@@ -542,7 +542,7 @@ function HeroAndQuoteScrollTrack() {
             `transition-*` on these imgs (avoids fighting the parent motion
             transform and removes crossfade flicker).
           */}
-            <div className="relative isolate h-[min(50vh,500px)] w-[min(50vw,500px)] overflow-hidden rounded-none bg-transparent">
+            <div className="relative isolate h-[min(50svh,500px)] w-[min(50vw,500px)] overflow-hidden rounded-none bg-transparent">
               <img
                 id="archive-hero-slot-a"
                 src={`/images/gallery/${HERO_SEQUENCE[slotA.idx]}`}
@@ -759,7 +759,7 @@ function plateLayout(variant: PlateVariant) {
     case "small-top":
       return {
         wrapper:
-          "relative flex h-full w-[64vw] shrink-0 items-start justify-center px-6 pt-[max(96px,12dvh)] md:w-[22vw] md:px-6 md:pt-[max(96px,11dvh)]",
+          "relative flex h-full w-[64vw] shrink-0 items-start justify-center px-6 pt-[max(96px,12svh)] md:w-[22vw] md:px-6 md:pt-[max(96px,11svh)]",
         aspect: "aspect-[3/4]",
       };
     case "large-center":
@@ -771,7 +771,7 @@ function plateLayout(variant: PlateVariant) {
     case "small-bottom":
       return {
         wrapper:
-          "relative flex h-full w-[64vw] shrink-0 items-end justify-center px-6 pb-[max(96px,14dvh)] md:w-[22vw] md:px-6 md:pb-[max(96px,12dvh)]",
+          "relative flex h-full w-[64vw] shrink-0 items-end justify-center px-6 pb-[max(96px,14svh)] md:w-[22vw] md:px-6 md:pb-[max(96px,12svh)]",
         aspect: "aspect-[3/4]",
       };
   }
@@ -975,9 +975,9 @@ function ChaptersHorizontalScroll() {
         ref={sectionRef}
         aria-label="The Series — desktop"
         className="relative hidden w-full bg-[#F1ECDF] md:block"
-        style={{ height: `calc(100dvh + ${travel}px)` }}
+        style={{ height: `calc(100svh + ${travel}px)` }}
       >
-        <div className="sticky top-0 h-[100dvh] w-full overflow-hidden">
+        <div className="sticky top-0 h-[100svh] w-full overflow-hidden">
           {/* hairline top + bottom edges anchor the chapter as its own world */}
           <div
             aria-hidden
@@ -989,7 +989,7 @@ function ChaptersHorizontalScroll() {
           />
 
           {/* TOP RIBBON · brand mark + live chapter counter */}
-          <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 mx-auto flex w-full max-w-[1500px] items-center justify-between gap-4 px-5 pt-[max(0.9rem,1.6dvh)] md:px-10">
+          <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 mx-auto flex w-full max-w-[1500px] items-center justify-between gap-4 px-5 pt-[max(0.9rem,1.6svh)] md:px-10">
             <div className="flex items-center gap-3">
               <span aria-hidden className="h-2 w-2 rounded-full bg-[#0a0a0a]" />
               <p className={`${microKicker} text-black/65`}>
@@ -1316,7 +1316,7 @@ export function ArchivePage() {
   return (
     <div
       ref={pageRef}
-      className="relative min-h-[100dvh] overflow-x-clip bg-[#F9F8F3]"
+      className="relative min-h-[100svh] overflow-x-clip bg-[#F9F8F3]"
     >
       <div
         ref={wipeRef}

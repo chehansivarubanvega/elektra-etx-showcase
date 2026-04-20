@@ -639,7 +639,7 @@ export default function SnapController() {
         if (Math.abs(window.scrollY - targetY) > 20) {
           goTo(idx);
         }
-      }, 200);
+      }, 300);
     };
 
     window.addEventListener('scroll', onScrollSettle, { passive: true });
@@ -698,7 +698,8 @@ export default function SnapController() {
     const visualViewport = window.visualViewport;
     if (visualViewport) {
       visualViewport.addEventListener('resize', scheduleViewportRefresh);
-      visualViewport.addEventListener('scroll', scheduleViewportRefresh);
+      // REMOVED: visualViewport scroll listener. It fires during URL bar retraction 
+      // and causes layout thrashing during active swipes on iOS.
     }
 
     const onVisibilityChange = () => {

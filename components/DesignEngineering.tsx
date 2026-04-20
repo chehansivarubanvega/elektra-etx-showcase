@@ -139,13 +139,29 @@ const DesignEngineering = () => {
     let canvasH = 0;
     let dpr = 1;
     let lastDrawnIndex = -1;
+    
+    // Cache layout values to avoid getBoundingClientRect in the render loop (prevents iOS vibration).
+    let cachedSH = 0;
+    let cachedHH = 0;
+    let cachedSectionTop = 0;
+    const lastScrollYRef = useRef(0);
 
     const sync = () => {
+      // BLOCK resizing during active scroll to prevent buffer clearing jitter
+      if (globalThis.window && globalThis.window.scrollY !== lastScrollYRef.current) {
+        lastScrollYRef.current = globalThis.window.scrollY;
+        return false;
+      }
+
       const rect = canvas.getBoundingClientRect();
       const nextDpr = Math.min(globalThis.window?.devicePixelRatio ?? 1, 1.5);
       const w = Math.max(1, Math.floor(rect.width));
       const h = Math.max(1, Math.floor(rect.height));
-      if (w === canvasW && h === canvasH && nextDpr === dpr) return false;
+
+      // Increase tolerance to 4px to ignore typical iOS "elastic" layout shifts
+      const isSizeChanged = Math.abs(w - canvasW) > 4 || Math.abs(h - canvasH) > 4;
+      if (!isSizeChanged && nextDpr === dpr) return false;
+
       canvasW = w;
       canvasH = h;
       dpr = nextDpr;
@@ -194,29 +210,45 @@ const DesignEngineering = () => {
       return true;
     };
 
-    const computePowertrainAlignProgress = () => {
+    const refreshLayoutCache = () => {
       const section = containerRef.current;
       const headline = powertrainHeadlineRef.current;
-      if (!section || !headline) return 0.68;
+      if (!section || !headline) return;
+      const r = section.getBoundingClientRect();
+      const h = headline.getBoundingClientRect();
+      cachedSH = r.height;
+      cachedHH = h.height;
+      // Use pageYOffset + top to get absolute position relative to document top.
+      cachedSectionTop = r.top + globalThis.window.pageYOffset;
+    };
+
+    const computePowertrainAlignProgress = () => {
+      if (!cachedSH || !cachedHH) return 0.68;
       const vh = globalThis.window.innerHeight;
-      const sh = section.offsetHeight;
+      const scrollY = globalThis.window.pageYOffset;
+      
+      // Calculate where the section top is currently relative to the viewport top.
+      const currentRTtop = cachedSectionTop - scrollY;
+      
       const alignY = vh * POWERTRAIN_ANCHOR_Y_FRAC;
-      const L =
-        headline.getBoundingClientRect().top -
-        section.getBoundingClientRect().top;
-      const denom = vh - sh;
-      if (Math.abs(denom) < 2) return 0.68;
-      const raw = (alignY - L) / denom;
+      const denom = vh - cachedSH;
+      
+      // Calculate progress based on cached dimensions and current scroll.
+      const raw = (alignY - currentRTtop - cachedHH / 2) / (denom || 1);
       if (!Number.isFinite(raw)) return 0.68;
       return Math.min(0.97, Math.max(0.03, raw));
     };
 
     const resizeObserver =
       typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => sync())
+        ? new ResizeObserver(() => {
+            sync();
+            refreshLayoutCache();
+          })
         : null;
     resizeObserver?.observe(canvas);
     sync();
+    refreshLayoutCache();
 
     const isPowertrainHeadlineVisibleMobile = () => {
       const w = globalThis.window;
@@ -227,9 +259,14 @@ const DesignEngineering = () => {
       ) {
         return false;
       }
-      const r = powertrainHeadlineRef.current.getBoundingClientRect();
+      
+      // For visibility check, use cached scroll values or slightly less expensive ones.
+      const scrollY = w.pageYOffset;
+      const currentRTtop = cachedSectionTop - scrollY;
+      const headlineRelativeTop = currentRTtop + (cachedSH * 0.1); // Approximation to avoid per-frame getBoundingClientRect
       const vh = w.innerHeight;
-      return r.bottom > vh * 0.12 && r.top < vh * 0.9;
+      
+      return (headlineRelativeTop + cachedHH) > vh * 0.12 && headlineRelativeTop < vh * 0.9;
     };
 
     const render = () => {
@@ -254,8 +291,12 @@ const DesignEngineering = () => {
 
     animationId = globalThis.window.requestAnimationFrame(render);
 
+    // Refresh layout cache on window resize/scroll to keep it accurate without thrashing.
+    globalThis.window.addEventListener("resize", refreshLayoutCache);
+
     return () => {
       globalThis.window.cancelAnimationFrame(animationId);
+      globalThis.window.removeEventListener("resize", refreshLayoutCache);
       resizeObserver?.disconnect();
     };
   }, [imagesReady, scrollYProgress]);
@@ -304,6 +345,7 @@ const DesignEngineering = () => {
       <div
         data-snap-sticky="true"
         className="sticky top-0 z-30 flex min-h-0 w-full shrink-0 flex-col items-stretch border-b border-white/10 bg-[#030303] md:z-0 md:h-[100svh] md:max-h-none md:min-h-0 md:w-1/2 md:self-start md:border-b-0 md:border-r md:bg-black"
+        style={{ transform: "translateZ(0)" }}
       >
         {/* Mobile: title stays pinned with the sequence (same sticky column as canvas) */}
         <div className="relative shrink-0 border-b border-white/[0.06] bg-gradient-to-b from-black to-[#080808] px-4 pb-3 pt-5 md:hidden">
@@ -332,12 +374,12 @@ const DesignEngineering = () => {
         {/* Mobile: sequence viewport — slightly shorter so title + bar fit in view.
             Desktop: fill the sticky column (real height = 100vh, not stretched to the tall copy column)
             and center the frame with grid so md / “tablet landscape” viewports behave consistently. */}
-        <div className="flex min-h-[min(34dvh,300px)] max-h-[min(42dvh,380px)] flex-1 flex-col justify-end px-3 pb-1 pt-2 md:grid md:max-h-none md:min-h-0 md:flex-1 md:place-content-center md:p-10 lg:p-16 xl:p-20">
-          <div className="group relative mx-auto flex h-full min-h-[200px] w-full max-w-none flex-1 items-stretch md:h-auto md:max-h-[70vh] md:w-full md:max-w-none md:flex-none md:place-self-center">
+        <div className="flex min-h-[min(34svh,300px)] max-h-[min(42svh,380px)] flex-1 flex-col justify-end px-3 pb-1 pt-2 md:grid md:max-h-none md:min-h-0 md:flex-1 md:place-content-center md:p-10 lg:p-16 xl:p-20">
+          <div className="group relative mx-auto flex h-full min-h-[200px] w-full max-w-none flex-1 items-stretch md:h-auto md:max-h-[70svh] md:w-full md:max-w-none md:flex-none md:place-self-center">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#FF6B00]/12 via-transparent to-blue-500/5 p-px md:hidden">
               <div className="h-full w-full rounded-[0.98rem] bg-[#070707]" />
             </div>
-            <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#050505] shadow-[0_16px_48px_rgba(0,0,0,0.5)] md:h-[min(70vh,720px)] md:max-h-[70vh] md:rounded-none md:border-0 md:bg-transparent md:shadow-none">
+            <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#050505] shadow-[0_16px_48px_rgba(0,0,0,0.5)] md:h-[min(70svh,720px)] md:max-h-[70svh] md:rounded-none md:border-0 md:bg-transparent md:shadow-none">
               <div
                 className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-[#FF6B00]/45 to-transparent md:hidden"
                 aria-hidden
@@ -398,10 +440,10 @@ const DesignEngineering = () => {
           <div
             key={block.stage}
             data-snap-anchor={`design-${blockIndex}`}
-            className={`flex w-full flex-col px-4 pb-10 pt-6 sm:px-5 md:min-h-[min(115dvh,1100px)] md:justify-center md:px-10 md:py-20 md:pb-20 md:pt-0 lg:px-14 lg:py-24 xl:px-20 ${
+            className={`flex w-full flex-col px-4 pb-10 pt-6 sm:px-5 md:min-h-[min(115svh,1100px)] md:justify-center md:px-10 md:py-20 md:pb-20 md:pt-0 lg:px-14 lg:py-24 xl:px-20 ${
               blockIndex === 2
-                ? "min-h-[min(88dvh,840px)] md:min-h-[min(115dvh,1100px)]"
-                : "min-h-[min(72dvh,680px)]"
+                ? "min-h-[min(88svh,840px)] md:min-h-[min(115svh,1100px)]"
+                : "min-h-[min(72svh,680px)]"
             } justify-start md:justify-center`}
           >
             <article className="relative w-full max-w-[min(100%,36rem)] border-l-2 border-[#FF6B00]/70 pl-4 sm:pl-5 md:max-w-[min(100%,40rem)] md:border-0 md:pl-0 lg:max-w-[min(100%,40rem)]">

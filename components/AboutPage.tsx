@@ -178,7 +178,7 @@ export const AboutPage = () => {
       {/* ─── HERO ───────────────────────────────────────────────────────── */}
       <section
         ref={heroSectionRef}
-        className="relative isolate flex h-[100dvh] min-h-[640px] w-full items-center justify-center overflow-hidden bg-[#000000]"
+        className="relative isolate flex h-[100svh] min-h-[640px] w-full items-center justify-center overflow-hidden bg-[#000000]"
       >
         {/* Top HUD strip */}
         <div className="pointer-events-none absolute left-0 right-0 top-[120px] z-30 mx-auto flex max-w-7xl items-start justify-between px-6 sm:px-10">

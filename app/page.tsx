@@ -265,7 +265,7 @@ export default function Home() {
             keeps its existing 15vh because the wider viewport gives the
             type more room and the 3D vehicle parks lower in frame. */}
         <div
-          className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[26vh] sm:pt-[20vh] md:pt-[15vh] pointer-events-none z-0"
+          className="absolute inset-0 flex items-start justify-center overflow-hidden pt-[26svh] sm:pt-[20svh] md:pt-[15svh] pointer-events-none z-0"
           style={{ perspective: '1400px', perspectiveOrigin: '50% 80%' }}
         >
           <h1

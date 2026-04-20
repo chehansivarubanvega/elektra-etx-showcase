@@ -273,7 +273,7 @@ export const ContactPage = () => {
       {/* ─── SPLIT LAYOUT ─────────────────────────────────────────────── */}
       <div
         ref={rootRef}
-        className="relative z-10 flex min-h-[100dvh] w-full flex-col lg:flex-row"
+        className="relative z-10 flex min-h-[100svh] w-full flex-col lg:flex-row"
       >
         {/* ============================================================
             LEFT — TECHNICAL TWIN (3D macro view)
@@ -300,7 +300,7 @@ export const ContactPage = () => {
                   pointerRef.current.active = false;
                 }
           }
-          className="relative h-[70vh] min-h-[440px] w-full overflow-hidden border-b border-white/[0.06] bg-[#050505] lg:fixed lg:left-0 lg:top-0 lg:h-screen lg:w-1/2 lg:border-b-0 lg:border-r"
+          className="relative h-[70svh] min-h-[440px] w-full overflow-hidden border-b border-white/[0.06] bg-[#050505] lg:fixed lg:left-0 lg:top-0 lg:h-screen lg:w-1/2 lg:border-b-0 lg:border-r"
           style={
             coarsePointer
               ? {touchAction: "pan-y", WebkitUserSelect: "none", userSelect: "none"}
