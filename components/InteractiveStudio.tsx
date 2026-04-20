@@ -165,7 +165,7 @@ const InteractiveStudio = () => {
   return (
     <section
       ref={sectionRef}
-      className="relative h-[100vh] w-full min-w-0 max-w-full overflow-x-clip bg-[#000000] flex items-center justify-center p-4 md:p-8"
+      className="relative h-[100svh] w-full min-w-0 max-w-full overflow-x-clip bg-[#000000] flex items-center justify-center p-4 md:p-8"
       id="interactive-studio"
       data-snap-stage="studio"
     >

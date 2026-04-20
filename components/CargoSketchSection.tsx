@@ -297,12 +297,12 @@ const CargoSketchSection = () => {
       data-snap-stage="cargo"
       data-snap-native-scroll-mobile="true"
       className="relative w-full min-w-0 max-w-full overflow-x-clip bg-black text-white"
-      style={{ height: "300vh" }}
+      style={{ height: "300svh" }}
     >
       {/* The sticky stage = what the viewer actually sees during the scrub. */}
       <div
         ref={stageRef}
-        className="sticky top-0 h-screen w-full overflow-hidden"
+        className="sticky top-0 h-[100svh] w-full overflow-hidden"
       >
         {/* ─── Ambient background layers ─────────────────────────────────── */}
 
@@ -444,7 +444,7 @@ const CargoSketchSection = () => {
         </div>
 
         {/* ─── Mobile Hero Headline ──────────────────────────────────────── */}
-        <div className="pointer-events-none absolute left-5 right-5 top-[7vh] z-[18] md:hidden">
+        <div className="pointer-events-none absolute left-5 right-5 top-[7svh] z-[18] md:hidden">
           <div className="mb-2 flex items-center gap-2">
             <div className="h-1.5 w-1.5 shrink-0 bg-[#FF6B00]" />
             <span className="text-[9px] font-bold uppercase tracking-[0.35em] text-[#FF6B00]">
@@ -493,7 +493,7 @@ const CargoSketchSection = () => {
         {/* ─── Canvas Display Window (no HUD) ─────────────────────────────
             Desktop: centered; z below copy/callouts so the frame does not clip headline or narrative.
             Mobile: below headline; same shell class as the tether overlay for aligned % anchors. */}
-        <div className="pointer-events-none absolute inset-x-0 top-[22vh] z-[12] flex justify-center md:inset-0 md:top-0 md:items-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[22svh] z-[12] flex justify-center md:inset-0 md:top-0 md:items-center">
           <div className={CARGO_DISPLAY_SHELL_CLASS}>
             {/* Soft orange halo behind the sketch */}
             <div
@@ -580,7 +580,7 @@ const CargoSketchSection = () => {
         </div>
 
         {/* HUD tether cards — same shell geometry as the window; z above narrative, below headline */}
-        <div className="pointer-events-none absolute inset-x-0 top-[22vh] z-[22] flex justify-center md:inset-0 md:top-0 md:items-center">
+        <div className="pointer-events-none absolute inset-x-0 top-[22svh] z-[22] flex justify-center md:inset-0 md:top-0 md:items-center">
           <div className={`${CARGO_DISPLAY_SHELL_CLASS} pointer-events-none`}>
             <div
               aria-hidden
@@ -624,7 +624,7 @@ const CargoSketchSection = () => {
 
         {/* ─── Mobile feature highlights (below canvas) ───────────────────
             Same scroll beats as desktop callouts, copy aimed at real buyers. */}
-        <div className="pointer-events-none absolute left-5 right-5 top-[66vh] z-[18] md:hidden">
+        <div className="pointer-events-none absolute left-5 right-5 top-[66svh] z-[18] md:hidden">
           <div className="mb-3">
             <p className="text-[12px] font-semibold leading-tight text-white">
               What you notice as it loads up
@@ -646,7 +646,7 @@ const CargoSketchSection = () => {
         </div>
 
         {/* ─── Mobile Paragraph (compact, above the progress bar) ──────── */}
-        <div className="pointer-events-none absolute left-5 right-5 top-[82vh] z-[18] md:hidden"></div>
+        <div className="pointer-events-none absolute left-5 right-5 top-[82svh] z-[18] md:hidden"></div>
 
         {/* ─── Mobile Progress Bar ─────────────────────────────────────── */}
       </div>

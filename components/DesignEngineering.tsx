@@ -303,7 +303,7 @@ const DesignEngineering = () => {
     >
       <div
         data-snap-sticky="true"
-        className="sticky top-0 z-30 flex min-h-0 w-full shrink-0 flex-col items-stretch border-b border-white/10 bg-[#030303] md:z-0 md:h-screen md:max-h-none md:min-h-0 md:w-1/2 md:self-start md:border-b-0 md:border-r md:bg-black"
+        className="sticky top-0 z-30 flex min-h-0 w-full shrink-0 flex-col items-stretch border-b border-white/10 bg-[#030303] md:z-0 md:h-[100svh] md:max-h-none md:min-h-0 md:w-1/2 md:self-start md:border-b-0 md:border-r md:bg-black"
       >
         {/* Mobile: title stays pinned with the sequence (same sticky column as canvas) */}
         <div className="relative shrink-0 border-b border-white/[0.06] bg-gradient-to-b from-black to-[#080808] px-4 pb-3 pt-5 md:hidden">
@@ -439,7 +439,7 @@ const DesignEngineering = () => {
         ))}
         <div
           className="pointer-events-none w-full shrink-0 bg-transparent"
-          style={{ minHeight: `${SCROLL_PAD_VH}vh` }}
+          style={{ minHeight: `${SCROLL_PAD_VH}svh` }}
           aria-hidden
         />
       </div>
