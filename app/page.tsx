@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, Suspense } from 'react';
+import React, { useEffect, useRef, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -11,6 +11,7 @@ import DesignEngineering from '@/components/DesignEngineering';
 import CargoSketchSection from '@/components/CargoSketchSection';
 import InteractiveStudio from '@/components/InteractiveStudio';
 import SnapController from '@/components/SnapController';
+import { HERO_SCROLL_BG_IMAGES, scheduleHomeScrollSequencesWarmup } from '@/lib/site-assets';
 
 // Register ScrollTrigger
 if (typeof window !== 'undefined') {
@@ -20,6 +21,12 @@ if (typeof window !== 'undefined') {
 export default function Home() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollData = useRef({ hero: 0, metrics: 0, urban: 0, charging: 0, daylight: 0 });
+
+  useEffect(() => {
+    const onHeroReady = () => scheduleHomeScrollSequencesWarmup();
+    globalThis.addEventListener('elektra-hero-ready', onHeroReady);
+    return () => globalThis.removeEventListener('elektra-hero-ready', onHeroReady);
+  }, []);
 
   useGSAP(() => {
     if (!containerRef.current) return;
@@ -199,7 +206,7 @@ export default function Home() {
       >
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/sigiriya.png')", willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+          style={{ backgroundImage: `url('${HERO_SCROLL_BG_IMAGES[0]}')`, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         />
         <div
           className="metrics-bg absolute inset-0 z-0 opacity-0 pointer-events-none bg-gradient-to-b from-black/90 via-black/75 to-black/85"
@@ -207,7 +214,7 @@ export default function Home() {
         />
         <div
           className="urban-bg-image absolute inset-0 z-0 opacity-0 pointer-events-none bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/images/city.png')", willChange: 'transform, opacity', transform: 'translateZ(0)' }}
+          style={{ backgroundImage: `url('${HERO_SCROLL_BG_IMAGES[1]}')`, willChange: 'transform, opacity', transform: 'translateZ(0)' }}
         />
         <div
           className="urban-bg-overlay absolute inset-0 z-0 opacity-0 pointer-events-none bg-gradient-to-b from-black/85 via-black/55 to-black/82"

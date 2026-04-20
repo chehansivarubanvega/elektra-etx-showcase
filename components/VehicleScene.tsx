@@ -4,8 +4,9 @@ import React, { useRef, useMemo, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { ETX_EXTERIOR_GLB } from "@/lib/site-assets";
 
-const MODEL_PATH = "/models/etx-exterior-panels.glb";
+const MODEL_PATH = ETX_EXTERIOR_GLB;
 const BASE_Y_ROTATION = Math.PI;
 
 type AnyMaterial = THREE.Material & { opacity?: number; transparent?: boolean };

@@ -7,6 +7,7 @@ import {Providers} from './providers';
 import {Navbar} from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {PageTransition} from '@/components/PageTransition';
+import {ETX_EXTERIOR_GLB} from '@/lib/site-assets';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -21,6 +22,15 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className={`${inter.variable} overflow-x-clip`}>
+      <head>
+        <link
+          rel="preload"
+          href={ETX_EXTERIOR_GLB}
+          as="fetch"
+          type="model/gltf-binary"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="min-w-0 overflow-x-clip" suppressHydrationWarning>
         <Providers>
           <Navbar />

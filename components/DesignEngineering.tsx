@@ -68,7 +68,7 @@ const DesignEngineering = () => {
           }
         }
       },
-      { rootMargin: "600px 0px" },
+      { rootMargin: "0px 0px 4500px 0px" },
     );
     io.observe(containerRef.current);
     return () => io.disconnect();

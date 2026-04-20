@@ -4,8 +4,9 @@ import React, {Suspense, useEffect, useImperativeHandle, useMemo, useRef} from "
 import {Canvas, useFrame} from "@react-three/fiber";
 import {ContactShadows, Environment, useGLTF} from "@react-three/drei";
 import * as THREE from "three";
+import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 
-const MODEL_PATH = "/models/etx-exterior-panels.glb";
+const MODEL_PATH = ETX_EXTERIOR_GLB;
 
 /** Cinematic ¾ rear-wheel framing — close enough to read as a "macro" detail
  *  shot of the rear deck / charging panel without losing silhouette context. */

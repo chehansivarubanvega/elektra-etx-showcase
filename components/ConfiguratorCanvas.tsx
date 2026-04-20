@@ -28,8 +28,9 @@ import {Canvas, useFrame, useThree} from "@react-three/fiber";
 import {ContactShadows, Environment, useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
+import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 
-const MODEL_PATH = "/models/etx-exterior-panels.glb";
+const MODEL_PATH = ETX_EXTERIOR_GLB;
 const MAX_FLEET = 5;
 
 export type FocusTarget =

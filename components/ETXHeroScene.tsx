@@ -4,8 +4,9 @@ import React, {Suspense, useMemo, useRef} from "react";
 import {Canvas, useFrame} from "@react-three/fiber";
 import {ContactShadows, Environment, useGLTF} from "@react-three/drei";
 import * as THREE from "three";
+import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 
-const MODEL_PATH = "/models/etx-exterior-panels.glb";
+const MODEL_PATH = ETX_EXTERIOR_GLB;
 /** Three-quarter front baseline so the cursor "look" reads as cinematic head-turn. */
 const BASE_Y_ROTATION = Math.PI - Math.PI * 0.18;
 const BASE_X_ROTATION = -0.06;
