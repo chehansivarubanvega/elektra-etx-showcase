@@ -158,8 +158,13 @@ const DesignEngineering = () => {
     let cachedSectionTop = 0;
 
     const sync = () => {
-      // BLOCK resizing during active scroll to prevent buffer clearing jitter
-      if (globalThis.window && globalThis.window.scrollY !== lastScrollYRef.current) {
+      // BLOCK resizing during active scroll to prevent buffer clearing jitter.
+      // We only block if the canvas has already been initialized (canvasW > 0).
+      if (
+        canvasW > 0 &&
+        globalThis.window &&
+        globalThis.window.scrollY !== lastScrollYRef.current
+      ) {
         lastScrollYRef.current = globalThis.window.scrollY;
         return false;
       }

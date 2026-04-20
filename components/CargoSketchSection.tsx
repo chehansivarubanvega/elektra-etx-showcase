@@ -230,8 +230,13 @@ const CargoSketchSection = () => {
     let lastIdx = -1;
 
     const sync = () => {
-      // BLOCK resizing during active scroll to prevent buffer clearing jitter
-      if (globalThis.window && Math.abs(globalThis.window.scrollY - lastScrollYRef.current) > 2) {
+      // BLOCK resizing during active scroll to prevent buffer clearing jitter.
+      // We only block if the canvas has already been initialized (cW > 0).
+      if (
+        cW > 0 &&
+        globalThis.window &&
+        Math.abs(globalThis.window.scrollY - lastScrollYRef.current) > 2
+      ) {
         lastScrollYRef.current = globalThis.window.scrollY;
         return;
       }
