@@ -221,17 +221,19 @@ export default function SnapController() {
             duration: 1.1,
           });
         } else {
-          const stickyEl =
-            designSection.querySelector<HTMLElement>('[data-snap-sticky]');
-          const anchors = Array.from(
-            designSection.querySelectorAll<HTMLElement>(
-              '[data-snap-anchor^="design-"]',
-            ),
-          );
-          anchors.forEach((anchor, i) => {
+          const DESIGN_POINTS = [0.16, 0.5, 0.83];
+          DESIGN_POINTS.forEach((p, i) => {
             stages.push({
               id: `design-${i}`,
-              getY: () => resolveAnchorY(anchor, stickyEl),
+              getY: () => {
+                const rect = designSection.getBoundingClientRect();
+                const top = rect.top + window.scrollY;
+                const range = Math.max(
+                  0,
+                  designSection.offsetHeight - window.innerHeight,
+                );
+                return Math.max(0, Math.min(maxScrollY(), top + p * range));
+              },
               duration: 1.15,
             });
           });
