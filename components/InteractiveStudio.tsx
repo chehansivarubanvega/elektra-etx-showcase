@@ -7,6 +7,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import gsap from 'gsap';
 import { Loader2 } from 'lucide-react';
 import { VehicleModel } from './VehicleScene';
+import { CanvasErrorBoundary } from './CanvasErrorBoundary';
 
 const CanvasLoader = () => {
   const { progress } = useProgress();
@@ -174,60 +175,62 @@ const InteractiveStudio = () => {
       >
         {inView && (
           <div className={`absolute inset-0 ${canvasPointerClass}`}>
-            <Canvas
-              shadows={false}
-              dpr={[1, 1.5]}
-              frameloop={orbitEnabled ? 'always' : 'demand'}
-              gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
-              camera={{ position: [8, 4, 8], fov: 35 }}
-              performance={{ min: 0.5 }}
-              className={
-                orbitEnabled
-                  ? 'h-full w-full min-h-0 cursor-grab active:cursor-grabbing'
-                  : 'h-full w-full min-h-0'
-              }
-            >
-              <CanvasPointerHitTarget interactable={orbitEnabled} />
-              <Suspense fallback={<CanvasLoader />}>
-                <ambientLight intensity={1.2} />
-                <directionalLight position={[8, 10, 6]} intensity={1.4} />
-                <directionalLight position={[-6, 4, -4]} intensity={0.5} color={0x99bbff} />
+            <CanvasErrorBoundary>
+              <Canvas
+                shadows={false}
+                dpr={[1, 1.5]}
+                frameloop={orbitEnabled ? 'always' : 'demand'}
+                gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
+                camera={{ position: [8, 4, 8], fov: 35 }}
+                performance={{ min: 0.5 }}
+                className={
+                  orbitEnabled
+                    ? 'h-full w-full min-h-0 cursor-grab active:cursor-grabbing'
+                    : 'h-full w-full min-h-0'
+                }
+              >
+                <CanvasPointerHitTarget interactable={orbitEnabled} />
+                <Suspense fallback={<CanvasLoader />}>
+                  <ambientLight intensity={1.2} />
+                  <directionalLight position={[8, 10, 6]} intensity={1.4} />
+                  <directionalLight position={[-6, 4, -4]} intensity={0.5} color={0x99bbff} />
 
-                <VehicleModel position={[0, 1.5, 0]} rotation={[0, Math.PI, 0]} />
+                  <VehicleModel position={[0, 1.5, 0]} rotation={[0, Math.PI, 0]} />
 
-                <ContactShadows
-                  position={[0, 0, 0]}
-                  opacity={0.45}
-                  blur={2.5}
-                  far={1.5}
-                  resolution={256}
-                  color="#000000"
-                />
+                  <ContactShadows
+                    position={[0, 0, 0]}
+                    opacity={0.45}
+                    blur={2.5}
+                    far={1.5}
+                    resolution={256}
+                    color="#000000"
+                  />
 
-                {orbitEnabled ? (
-                  <>
-                    <OrbitControls
-                      ref={controlsRef}
-                      enabled
-                      enablePan={false}
-                      enableZoom={false}
-                      enableDamping
-                      dampingFactor={0.05}
-                      maxPolarAngle={Math.PI / 2}
-                      minPolarAngle={0}
-                      // Mobile: never auto-rotate the camera. The user opts
-                      // into 360° explicitly and should be the only thing
-                      // moving the model from there. Desktop keeps the
-                      // ambient idle spin until the first interaction.
-                      autoRotate={!interacted && !isMobileLayout}
-                      autoRotateSpeed={0.5}
-                      onStart={handleInteractionStart}
-                    />
-                    <CanvasVerticalTouchScroll active />
-                  </>
-                ) : null}
-              </Suspense>
-            </Canvas>
+                  {orbitEnabled ? (
+                    <>
+                      <OrbitControls
+                        ref={controlsRef}
+                        enabled
+                        enablePan={false}
+                        enableZoom={false}
+                        enableDamping
+                        dampingFactor={0.05}
+                        maxPolarAngle={Math.PI / 2}
+                        minPolarAngle={0}
+                        // Mobile: never auto-rotate the camera. The user opts
+                        // into 360° explicitly and should be the only thing
+                        // moving the model from there. Desktop keeps the
+                        // ambient idle spin until the first interaction.
+                        autoRotate={!interacted && !isMobileLayout}
+                        autoRotateSpeed={0.5}
+                        onStart={handleInteractionStart}
+                      />
+                      <CanvasVerticalTouchScroll active />
+                    </>
+                  ) : null}
+                </Suspense>
+              </Canvas>
+            </CanvasErrorBoundary>
           </div>
         )}
 

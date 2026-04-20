@@ -1,10 +1,11 @@
 "use client";
 
-import React, {Suspense, useMemo, useRef} from "react";
+import React, {Suspense, useMemo, useRef, useState, useEffect, useCallback} from "react";
 import {Canvas, useFrame} from "@react-three/fiber";
 import {ContactShadows, Environment, useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
+import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
 /** Three-quarter front baseline so the cursor "look" reads as cinematic head-turn. */
@@ -107,58 +108,109 @@ type SceneProps = Readonly<{
   pointerRef: PointerRef;
 }>;
 
-/** Studio-grade hero scene — Environment HDR + contact shadows + key/fill rim. */
+/** Studio-grade hero scene — Environment HDR + contact shadows + key/fill rim.
+ *  Wrapped in an error boundary and visibility gate so iOS Safari's limited
+ *  WebGL context pool isn't exhausted by off-screen canvases. */
 export const ETXHeroScene = ({pointerRef}: SceneProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  /** Track context-loss so we can remount the Canvas on restore. */
+  const [contextKey, setContextKey] = useState(0);
+
+  // Defer Canvas mount until the container enters the viewport (± 400 px).
+  // Prevents burning a WebGL context for a section the user hasn't reached.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) setVisible(entry.isIntersecting);
+      },
+      { rootMargin: '400px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  /** Handle WebGL context lost / restored — remount the Canvas on restore. */
+  const onCreated = useCallback(({ gl }: { gl: THREE.WebGLRenderer }) => {
+    const canvas = gl.domElement;
+    const onLost = (e: Event) => {
+      e.preventDefault();
+      // eslint-disable-next-line no-console
+      console.warn('[ETXHeroScene] WebGL context lost');
+    };
+    const onRestored = () => {
+      // eslint-disable-next-line no-console
+      console.info('[ETXHeroScene] WebGL context restored — remounting');
+      setContextKey((k) => k + 1);
+    };
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    // Cleanup handled by Canvas unmount — no need for manual removeEventListener
+  }, []);
+
   return (
-    <Canvas
-      dpr={[1, 1.8]}
-      shadows
-      camera={{position: [0, 0.4, 11], fov: 30}}
-      gl={{
-        antialias: true,
-        powerPreference: "high-performance",
-        alpha: true,
-        toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.05,
-      }}
-    >
-      {/* Ambient base — keeps shadow side from crushing to pure black. */}
-      <ambientLight intensity={0.35} />
+    <div ref={containerRef} className="h-full w-full">
+      <CanvasErrorBoundary>
+        {visible && (
+          <Canvas
+            key={contextKey}
+            dpr={[1, 1.8]}
+            shadows
+            camera={{position: [0, 0.4, 11], fov: 30}}
+            gl={{
+              antialias: true,
+              powerPreference: "high-performance",
+              alpha: true,
+              toneMapping: THREE.ACESFilmicToneMapping,
+              toneMappingExposure: 1.05,
+            }}
+            onCreated={onCreated}
+          >
+            {/* Ambient base — keeps shadow side from crushing to pure black. */}
+            <ambientLight intensity={0.35} />
 
-      {/* Key light — warm, slightly above-camera, casts the contact shadow. */}
-      <directionalLight
-        position={[5.5, 7.5, 6]}
-        intensity={2.4}
-        color={"#fff1e0"}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-bias={-0.0002}
-      />
+            {/* Key light — warm, slightly above-camera, casts the contact shadow. */}
+            <directionalLight
+              position={[5.5, 7.5, 6]}
+              intensity={2.4}
+              color={"#fff1e0"}
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-bias={-0.0002}
+            />
 
-      {/* Cool fill — opposite side, simulates studio bounce on the far panel. */}
-      <directionalLight position={[-7, 5, -3]} intensity={0.9} color={"#7fa8ff"} />
+            {/* Cool fill — opposite side, simulates studio bounce on the far panel. */}
+            <directionalLight position={[-7, 5, -3]} intensity={0.9} color={"#7fa8ff"} />
 
-      {/* Rim — picks the silhouette out of the pure-black background. */}
-      <directionalLight position={[0, 4, -8]} intensity={1.2} color={"#ffffff"} />
+            {/* Rim — picks the silhouette out of the pure-black background. */}
+            <directionalLight position={[0, 4, -8]} intensity={1.2} color={"#ffffff"} />
 
-      <Suspense fallback={null}>
-        <ETXModel pointerRef={pointerRef} />
-        {/* Self-hosted HDR (mirror of drei's `studio` preset). Hosting it
-            ourselves keeps CSP `connect-src` locked to `'self'` and avoids
-            depending on githack/jsDelivr in production. */}
-        <Environment files="/hdr/studio_small_03_1k.hdr" />
-        <ContactShadows
-          position={[0, -2.55, 0]}
-          opacity={0.55}
-          scale={16}
-          blur={2.6}
-          far={4.5}
-          resolution={1024}
-          color={"#000000"}
-        />
-      </Suspense>
-    </Canvas>
+            <Suspense fallback={null}>
+              <ETXModel pointerRef={pointerRef} />
+              {/* Self-hosted HDR (mirror of drei's `studio` preset). Hosting it
+                  ourselves keeps CSP `connect-src` locked to `'self'` and avoids
+                  depending on githack/jsDelivr in production. */}
+              <Environment files="/hdr/studio_small_03_1k.hdr" />
+              <ContactShadows
+                position={[0, -2.55, 0]}
+                opacity={0.55}
+                scale={16}
+                blur={2.6}
+                far={4.5}
+                resolution={1024}
+                color={"#000000"}
+              />
+            </Suspense>
+          </Canvas>
+        )}
+      </CanvasErrorBoundary>
+    </div>
   );
 };
 

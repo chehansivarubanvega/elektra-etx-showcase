@@ -11,6 +11,7 @@ import DesignEngineering from '@/components/DesignEngineering';
 import CargoSketchSection from '@/components/CargoSketchSection';
 import InteractiveStudio from '@/components/InteractiveStudio';
 import SnapController from '@/components/SnapController';
+import { CanvasErrorBoundary } from '@/components/CanvasErrorBoundary';
 import { HERO_SCROLL_BG_IMAGES, scheduleHomeScrollSequencesWarmup } from '@/lib/site-assets';
 
 // Register ScrollTrigger
@@ -296,20 +297,22 @@ export default function Home() {
 
         {/* 3D Canvas */}
         <div className="absolute inset-0 z-10 w-full h-full">
-          <Canvas
-            dpr={[1, 1.5]}
-            gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
-            camera={{ position: [0, 0, 15], fov: 30 }}
-            shadows={false}
-            performance={{ min: 0.5 }}
-          >
-            <ambientLight intensity={1.4} />
-            <directionalLight position={[6, 10, 6]} intensity={1.6} />
-            <directionalLight position={[-8, 6, -4]} intensity={0.55} color={0x99bbff} />
-            <Suspense fallback={null}>
-              <VehicleScene scrollData={scrollData} />
-            </Suspense>
-          </Canvas>
+          <CanvasErrorBoundary>
+            <Canvas
+              dpr={[1, 1.5]}
+              gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
+              camera={{ position: [0, 0, 15], fov: 30 }}
+              shadows={false}
+              performance={{ min: 0.5 }}
+            >
+              <ambientLight intensity={1.4} />
+              <directionalLight position={[6, 10, 6]} intensity={1.6} />
+              <directionalLight position={[-8, 6, -4]} intensity={0.55} color={0x99bbff} />
+              <Suspense fallback={null}>
+                <VehicleScene scrollData={scrollData} />
+              </Suspense>
+            </Canvas>
+          </CanvasErrorBoundary>
         </div>
 
         {/* HUD/Sidebars (Maintained) */}
