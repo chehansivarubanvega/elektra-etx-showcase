@@ -198,10 +198,11 @@ const DesignEngineering = () => {
       ref={containerRef}
       id="design-engineering"
       data-snap-stage="design"
+      data-snap-native-scroll-mobile="true"
       className="relative w-full bg-[#030303] text-white"
-      style={{ height: "300vh" }}
+      style={{ height: "300svh" }}
     >
-      <div className="sticky top-0 flex h-screen w-full flex-col md:flex-row overflow-hidden">
+      <div className="sticky top-0 flex h-[100svh] w-full flex-col md:flex-row overflow-hidden">
         
         {/* Left Side: Contained Technical Viewer */}
         <div className="relative flex h-[50vh] w-full items-center justify-center p-6 md:h-screen md:w-[45%] border-b md:border-b-0 md:border-r border-white/5">
