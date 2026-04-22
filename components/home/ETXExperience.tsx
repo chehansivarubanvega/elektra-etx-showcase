@@ -479,12 +479,13 @@ export function ETXExperience() {
         <div className="absolute inset-0 z-10 w-full h-full">
           <CanvasErrorBoundary>
             <Canvas
-              dpr={dpr}
+              dpr={lowPower ? 1 : dpr}
               gl={gl}
               frameloop={frameloop}
               camera={{ position: [0, 0, 15], fov: 30 }}
               shadows
               performance={{ min: lowPower ? 0.4 : 0.5 }}
+              style={{ background: 'transparent' }}
             >
               <EtxStudioRig>
                 {/* VehicleScene reads scrollData + mouseRef every frame */}
@@ -505,26 +506,30 @@ export function ETXExperience() {
         <DaylightSidebar />
 
         {/* ── Cinematic: Vignette overlay (GSAP-controlled) ─────────────── */}
-        <div
-          aria-hidden
-          className="vignette-overlay absolute inset-0 z-[36] pointer-events-none opacity-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%)",
-          }}
-        />
+        {!lowPower && (
+          <div
+            aria-hidden
+            className="vignette-overlay absolute inset-0 z-[15] pointer-events-none opacity-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%)",
+            }}
+          />
+        )}
 
         {/* ── Cinematic: Ghost trail streak (charging rocket exit) ───────── */}
-        <div
-          aria-hidden
-          className="ghost-trail absolute top-1/2 left-0 z-[9] w-full h-[6px] -translate-y-1/2 pointer-events-none opacity-0 rounded-full"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent 0%, #FF6B00 30%, #FF8C00 50%, #FF6B00 70%, transparent 100%)",
-            filter: "blur(3px)",
-            boxShadow: "0 0 20px rgba(255,107,0,0.6), 0 0 40px rgba(255,107,0,0.3)",
-          }}
-        />
+        {!lowPower && (
+          <div
+            aria-hidden
+            className="ghost-trail absolute top-1/2 left-0 z-[9] w-full h-[6px] -translate-y-1/2 pointer-events-none opacity-0 rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, #FF6B00 30%, #FF8C00 50%, #FF6B00 70%, transparent 100%)",
+              filter: "blur(3px)",
+              boxShadow: "0 0 20px rgba(255,107,0,0.6), 0 0 40px rgba(255,107,0,0.3)",
+            }}
+          />
+        )}
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════

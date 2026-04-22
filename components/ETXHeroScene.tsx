@@ -196,6 +196,7 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
             shadows
             camera={{position: [0, 0.4, 11], fov: 30}}
             gl={gl}
+            style={{background: 'transparent'}}
           >
             <WebGLContextRecovery onRestored={bumpContext} />
             <EtxStudioRig>

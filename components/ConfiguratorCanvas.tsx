@@ -408,29 +408,32 @@ export const ConfiguratorCanvas = ({
   const frameloop = useTabVisibleFrameloop(true);
 
   return (
-    <CanvasErrorBoundary>
-      <Canvas
-        dpr={dpr}
-        frameloop={frameloop}
-        shadows
-        camera={{position: FOCUS_CAMERA.idle.pos, fov: FOCUS_CAMERA.idle.fov}}
-        gl={gl}
-        performance={{min: lowPower ? 0.4 : 0.5}}
-        onPointerOver={() => onCanvasPointer?.(true)}
-        onPointerOut={() => onCanvasPointer?.(false)}
-      >
-        <color attach="background" args={["#000000"]} />
+    <div className="h-full w-full">
+      <CanvasErrorBoundary>
+        <Canvas
+          dpr={dpr}
+          frameloop={frameloop}
+          shadows
+          camera={{position: FOCUS_CAMERA.idle.pos, fov: FOCUS_CAMERA.idle.fov}}
+          gl={gl}
+          performance={{min: lowPower ? 0.4 : 0.5}}
+          onPointerOver={() => onCanvasPointer?.(true)}
+          onPointerOut={() => onCanvasPointer?.(false)}
+          style={{background: 'transparent'}}
+        >
+          <color attach="background" args={["#000000"]} />
 
-        <EtxStudioRig contactShadowY={-1.45} contactShadowScale={18}>
-          <GhostFleet state={state} />
-          <ETXModel state={state} />
-        </EtxStudioRig>
+          <EtxStudioRig contactShadowY={-1.45} contactShadowScale={18}>
+            <GhostFleet state={state} />
+            <ETXModel state={state} />
+          </EtxStudioRig>
 
-        <LightSpeedField launching={state.launching} />
-        <CameraDirector focus={state.focus} />
-        <LaunchWatchdog launching={state.launching} onComplete={onLaunchComplete} />
-      </Canvas>
-    </CanvasErrorBoundary>
+          <LightSpeedField launching={state.launching} />
+          <CameraDirector focus={state.focus} />
+          <LaunchWatchdog launching={state.launching} onComplete={onLaunchComplete} />
+        </Canvas>
+      </CanvasErrorBoundary>
+    </div>
   );
 };
 

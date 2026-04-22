@@ -204,6 +204,7 @@ const InteractiveStudio = () => {
                 gl={gl}
                 camera={{ position: [8, 4, 8], fov: 35 }}
                 performance={{ min: lowPower ? 0.4 : 0.5 }}
+                style={{ background: 'transparent' }}
                 className={
                   orbitEnabled
                     ? 'h-full w-full min-h-0 cursor-grab active:cursor-grabbing'

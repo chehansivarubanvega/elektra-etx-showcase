@@ -296,21 +296,24 @@ export const ContactScene = ({pointerRef, handleRef, framing = "desktop"}: Scene
       : {position: [0.4, 0.6, 8.6] as [number, number, number], fov: 28};
 
   return (
-    <CanvasErrorBoundary>
-      <Canvas
-        dpr={dpr}
-        frameloop={frameloop}
-        shadows
-        camera={cameraConfig}
-        gl={gl}
-        performance={{min: lowPower ? 0.4 : 0.5}}
-      >
-        <EtxStudioRig contactShadowY={-2.5}>
-          <PulseBridge handleRef={handleRef} pulseStateRef={pulseStateRef} />
-          <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} framing={framing} />
-        </EtxStudioRig>
-      </Canvas>
-    </CanvasErrorBoundary>
+    <div className="h-full w-full">
+      <CanvasErrorBoundary>
+        <Canvas
+          dpr={dpr}
+          frameloop={frameloop}
+          shadows
+          camera={cameraConfig}
+          gl={gl}
+          performance={{min: lowPower ? 0.4 : 0.5}}
+          style={{background: 'transparent'}}
+        >
+          <EtxStudioRig contactShadowY={-2.5}>
+            <PulseBridge handleRef={handleRef} pulseStateRef={pulseStateRef} />
+            <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} framing={framing} />
+          </EtxStudioRig>
+        </Canvas>
+      </CanvasErrorBoundary>
+    </div>
   );
 };
 

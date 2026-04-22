@@ -9,7 +9,7 @@ import { useWebGLBudget } from "@/components/WebGLBudgetContext";
 /** Self-hosted studio HDR (CSP; same as @react-three/drei `studio` feel). */
 export const ETX_STUDIO_HDR = "/hdr/studio_small_03_1k.hdr" as const;
 
-export const ETX_STUDIO_DPR: [number, number] = [1, 1.8];
+export const ETX_STUDIO_DPR: [number, number] = [1, 1.6];
 
 /** Aligned with `ETXHeroScene` (About) — use on every ETX `Canvas` for a consistent look. */
 export function etxStudioGlProps(
@@ -17,6 +17,7 @@ export function etxStudioGlProps(
     antialias: boolean;
     toneMappingExposure: number;
     powerPreference: "default" | "high-performance" | "low-power";
+    dpr: number;
   }> & { stencil?: boolean; depth?: boolean },
 ) {
   return {
@@ -54,8 +55,8 @@ export function EtxStudioRig({
 }: EtxStudioRigProps) {
   const { lowPower: fromBudget } = useWebGLBudget();
   const lowPower = lowPowerProp ?? fromBudget;
-  const shadowMap = lowPower ? 1024 : 2048;
-  const contactRes = lowPower ? 512 : 1024;
+  const shadowMap = lowPower ? 512 : 2048;
+  const contactRes = lowPower ? 256 : 1024;
   const envIntensity = lowPower ? 0.52 : 0.64;
 
   return (
@@ -71,16 +72,20 @@ export function EtxStudioRig({
         shadow-mapSize-height={shadowMap}
         shadow-bias={-0.0002}
       />
-      <directionalLight
-        position={[-7, 5, -3]}
-        intensity={0.78}
-        color="#8eb0f0"
-      />
-      <directionalLight
-        position={[0, 4, -8]}
-        intensity={0.95}
-        color="#ffffff"
-      />
+      {!lowPower && (
+        <>
+          <directionalLight
+            position={[-7, 5, -3]}
+            intensity={0.78}
+            color="#8eb0f0"
+          />
+          <directionalLight
+            position={[0, 4, -8]}
+            intensity={0.95}
+            color="#ffffff"
+          />
+        </>
+      )}
       <Suspense fallback={null}>
         {children}
         <Environment
