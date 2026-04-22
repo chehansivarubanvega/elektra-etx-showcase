@@ -1,7 +1,7 @@
 "use client";
 
-import React, {useMemo, useRef, useState, useEffect, useCallback} from "react";
-import {Canvas, useFrame} from "@react-three/fiber";
+import React, {useCallback, useMemo, useRef, useState, useEffect} from "react";
+import {Canvas, useFrame, useThree} from "@react-three/fiber";
 import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
@@ -111,6 +111,33 @@ if (typeof globalThis.window !== "undefined") {
   useGLTF.preload(MODEL_PATH);
 }
 
+/** Listens for context loss/restore and remounts when the GPU recovers; cleans up listeners. */
+function WebGLContextRecovery({onRestored}: {onRestored: () => void}) {
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const onLost = (e: Event) => {
+      e.preventDefault();
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[ETXHeroScene] WebGL context lost");
+      }
+    };
+    const onRestoredHandler = () => {
+      if (process.env.NODE_ENV === "development") {
+        console.info("[ETXHeroScene] WebGL context restored — remounting");
+      }
+      onRestored();
+    };
+    canvas.addEventListener("webglcontextlost", onLost);
+    canvas.addEventListener("webglcontextrestored", onRestoredHandler);
+    return () => {
+      canvas.removeEventListener("webglcontextlost", onLost);
+      canvas.removeEventListener("webglcontextrestored", onRestoredHandler);
+    };
+  }, [gl, onRestored]);
+  return null;
+}
+
 type SceneProps = Readonly<{
   pointerRef: PointerRef;
 }>;
@@ -123,41 +150,24 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
   const [visible, setVisible] = useState(false);
   /** Track context-loss so we can remount the Canvas on restore. */
   const [contextKey, setContextKey] = useState(0);
+  const bumpContext = useCallback(() => setContextKey((k) => k + 1), []);
 
   // Defer Canvas mount until the container enters the viewport (± 400 px).
   // Prevents burning a WebGL context for a section the user hasn't reached.
   useEffect(() => {
     const el = containerRef.current;
-    if (!el || typeof IntersectionObserver === 'undefined') {
-      setVisible(true);
+    if (!el || typeof IntersectionObserver === "undefined") {
+      queueMicrotask(() => setVisible(true));
       return;
     }
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) setVisible(entry.isIntersecting);
       },
-      { rootMargin: '400px 0px' },
+      {rootMargin: "400px 0px"},
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
-
-  /** Handle WebGL context lost / restored — remount the Canvas on restore. */
-  const onCreated = useCallback(({ gl }: { gl: THREE.WebGLRenderer }) => {
-    const canvas = gl.domElement;
-    const onLost = (e: Event) => {
-      e.preventDefault();
-      // eslint-disable-next-line no-console
-      console.warn('[ETXHeroScene] WebGL context lost');
-    };
-    const onRestored = () => {
-      // eslint-disable-next-line no-console
-      console.info('[ETXHeroScene] WebGL context restored — remounting');
-      setContextKey((k) => k + 1);
-    };
-    canvas.addEventListener('webglcontextlost', onLost);
-    canvas.addEventListener('webglcontextrestored', onRestored);
-    // Cleanup handled by Canvas unmount — no need for manual removeEventListener
   }, []);
 
   return (
@@ -170,8 +180,8 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
             shadows
             camera={{position: [0, 0.4, 11], fov: 30}}
             gl={etxStudioGlProps()}
-            onCreated={onCreated}
           >
+            <WebGLContextRecovery onRestored={bumpContext} />
             <EtxStudioRig>
               <ETXModel pointerRef={pointerRef} />
             </EtxStudioRig>

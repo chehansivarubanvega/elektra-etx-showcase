@@ -1,6 +1,12 @@
 "use client";
 
-import React, {useEffect, useImperativeHandle, useMemo, useRef} from "react";
+import React, {
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {Canvas, useFrame} from "@react-three/fiber";
 import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
@@ -112,6 +118,14 @@ function ContactModel({pointerRef, pulseStateRef, framing}: ModelProps) {
     return {cloned: clone, emissiveMaterials: mats};
   }, [scene, framing]);
 
+  const emissiveMatsRef = useRef<
+    (THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial)[]
+  >([]);
+
+  useLayoutEffect(() => {
+    emissiveMatsRef.current = emissiveMaterials;
+  }, [emissiveMaterials]);
+
   const groupRef = useRef<THREE.Group>(null);
   const tiltRef = useRef<THREE.Group>(null);
 
@@ -190,8 +204,9 @@ function ContactModel({pointerRef, pulseStateRef, framing}: ModelProps) {
 
     /** Apply emissive uniformly. Cheap loop — typical ETX model is < 30 mats. */
     const g = state.current.glow;
-    for (let i = 0; i < emissiveMaterials.length; i++) {
-      emissiveMaterials[i].emissiveIntensity = g;
+    const mats = emissiveMatsRef.current;
+    for (let i = 0; i < mats.length; i++) {
+      mats[i].emissiveIntensity = g;
     }
   });
 

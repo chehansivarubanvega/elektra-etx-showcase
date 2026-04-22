@@ -8,15 +8,28 @@ import {Navbar} from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {PageTransition} from '@/components/PageTransition';
 import {ETX_EXTERIOR_GLB} from '@/lib/site-assets';
+import {getMetadataBaseUrl} from '@/lib/site';
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 });
 
+const siteTitle = 'ELEKTRA ETX | Future of Performance';
+const siteDescription =
+  'Experience the pure power and aerodynamic efficiency of the ELEKTRA ETX.';
+
 export const metadata: Metadata = {
-  title: 'ELEKTRA ETX | Future of Performance',
-  description: 'Experience the pure power and aerodynamic efficiency of the ELEKTRA ETX.',
+  metadataBase: getMetadataBaseUrl(),
+  title: siteTitle,
+  description: siteDescription,
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    type: 'website',
+  },
+  twitter: {card: 'summary_large_image', title: siteTitle, description: siteDescription},
+  robots: {index: true, follow: true},
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {

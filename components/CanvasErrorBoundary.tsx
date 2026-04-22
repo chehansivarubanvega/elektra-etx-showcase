@@ -23,8 +23,9 @@ export class CanvasErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error) {
-    // eslint-disable-next-line no-console
-    console.warn("[CanvasErrorBoundary] 3D error caught:", error.message);
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[CanvasErrorBoundary] 3D error caught:", error.message);
+    }
   }
 
   render() {

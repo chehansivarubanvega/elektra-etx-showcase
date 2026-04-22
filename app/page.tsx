@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Canvas } from '@react-three/fiber';
 import { EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps } from '@/components/EtxStudioRig';
 import gsap from 'gsap';
@@ -8,12 +9,19 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { VehicleScene } from '@/components/VehicleScene';
 import { Loader } from '@/components/Loader';
-import DesignEngineering from '@/components/DesignEngineering';
-import CargoSketchSection from '@/components/CargoSketchSection';
-import InteractiveStudio from '@/components/InteractiveStudio';
 import SnapController from '@/components/SnapController';
 import { CanvasErrorBoundary } from '@/components/CanvasErrorBoundary';
 import { HERO_SCROLL_BG_IMAGES, scheduleHomeScrollSequencesWarmup } from '@/lib/site-assets';
+
+const DesignEngineering = dynamic(() => import('@/components/DesignEngineering'), {
+  loading: () => null,
+});
+const CargoSketchSection = dynamic(() => import('@/components/CargoSketchSection'), {
+  loading: () => null,
+});
+const InteractiveStudio = dynamic(() => import('@/components/InteractiveStudio'), {
+  loading: () => null,
+});
 
 // Register ScrollTrigger
 if (typeof window !== 'undefined') {
@@ -313,10 +321,6 @@ export default function Home() {
           </CanvasErrorBoundary>
         </div>
 
-        {/* HUD/Sidebars (Maintained) */}
-        {/* ... existing hero-hud, metrics-sidebar, urban-sidebar ... */}
-        
-        {/* We'll re-render them to ensure correct imports and structure */}
         <div className="hero-hud absolute inset-0 z-20 pointer-events-none">
           <div className="absolute top-[96px] left-1/2 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 flex-col items-center gap-2 text-center md:contents">
             <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-white/40 md:absolute md:top-[120px] md:left-[80px] md:w-auto md:max-w-none md:text-left">

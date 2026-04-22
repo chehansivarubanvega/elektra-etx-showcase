@@ -1,11 +1,26 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useSpring, useTransform, useMotionValueEvent } from "motion/react";
+import {
+  motion,
+  useScroll,
+  useSpring,
+  useTransform,
+  useMotionValueEvent,
+} from "motion/react";
+import type { MotionValue } from "motion/react";
 
 const TOTAL_FRAMES = 40;
 const LAST_FRAME = TOTAL_FRAMES - 1;
-const PRIORITY_LEAD = 8;
+
+type DesignStage = {
+  id: string;
+  tag: string;
+  label: string;
+  title: string;
+  content: string;
+  specs: string[];
+};
 
 const DesignEngineering = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -286,7 +301,15 @@ const DesignEngineering = () => {
   );
 };
 
-const StageBlock = ({ stage, index, progress }: { stage: any, index: number, progress: any }) => {
+const StageBlock = ({
+  stage,
+  index,
+  progress,
+}: {
+  stage: DesignStage;
+  index: number;
+  progress: MotionValue<number>;
+}) => {
   const start = index / 3;
   const end = (index + 1) / 3;
   

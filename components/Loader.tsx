@@ -7,17 +7,10 @@ import {
   preloadHeroBackgroundImages,
 } from "@/lib/site-assets";
 
-const funnyPhrases = [
-  "Waking up the engine hamsters...",
-  "Charging the flux capacitor...",
-  "Polishing the cyber-paint...",
-  "Downloading more horsepower...",
-  "Bargaining with your GPU...",
-  "Attaching digital wheels...",
-  "Checking blinker fluid levels...",
-  "Calibrating the aerodynamic swoosh...",
-  "Warming up the pixels...",
-  "Almost ready to conquer the city...",
+const loadingMessages = [
+  "Loading 3D model…",
+  "Preparing your experience…",
+  "Almost ready…",
 ];
 
 /** Once the hero loader has finished in this session, skip it on repeat mounts of "/". */
@@ -46,7 +39,7 @@ export const Loader = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTextIndex((prev) => (prev + 1) % funnyPhrases.length);
+      setTextIndex((prev) => (prev + 1) % loadingMessages.length);
     }, 2500);
     return () => clearInterval(interval);
   }, []);
@@ -142,7 +135,7 @@ export const Loader = () => {
       <div className="mx-auto flex w-full max-w-[min(340px,calc(100%-2rem))] flex-col items-center px-4 text-center">
         <div className="h-8 mb-6 flex items-center justify-center">
           <p className="text-white font-mono text-[11px] tracking-[0.2em] uppercase animate-pulse">
-            {funnyPhrases[textIndex]}
+            {loadingMessages[textIndex]}
           </p>
         </div>
 

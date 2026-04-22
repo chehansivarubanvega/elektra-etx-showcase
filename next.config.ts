@@ -76,6 +76,15 @@ const nextConfig: NextConfig = {
   compress: true,
   productionBrowserSourceMaps: false,
 
+  /** Tree-shake large packages that re-export many symbols (R3F, icons, motion). */
+  experimental: {
+    optimizePackageImports: [
+      '@react-three/drei',
+      'lucide-react',
+      'motion',
+    ],
+  },
+
   eslint: {
     /**
      * The new React Compiler-style rules in `eslint-config-next@16` flag

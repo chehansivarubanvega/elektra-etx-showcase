@@ -67,6 +67,8 @@ function CanvasPointerHitTarget({ interactable }: { interactable: boolean }) {
     if (interactable) {
       el.style.removeProperty('pointer-events');
     } else {
+      // Canvas DOM — not React-managed; allow page scroll when orbit is off (mobile).
+      // eslint-disable-next-line react-hooks/immutability -- toggling pointer-events on WebGL canvas element
       el.style.pointerEvents = 'none';
     }
     return () => {
@@ -105,7 +107,7 @@ const InteractiveStudio = () => {
   useEffect(() => {
     if (!sectionRef.current) return;
     if (typeof IntersectionObserver === 'undefined') {
-      setInView(true);
+      queueMicrotask(() => setInView(true));
       return;
     }
     const io = new IntersectionObserver(
