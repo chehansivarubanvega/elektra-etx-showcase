@@ -114,7 +114,23 @@ export function ETXExperience() {
     urban: 0,
     charging: 0,
     daylight: 0,
+    velocity: 0,
   });
+
+  /**
+   * Normalized mouse position (−1…1) for cursor-follow micro-rotations.
+   * Updated via pointermove on the hero section. Passed to VehicleScene.
+   */
+  const mouseRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseRef.current.y = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => window.removeEventListener("pointermove", onMove);
+  }, []);
 
   // ── Sequence warmup (fires after 3D hero signals ready) ──────────────────
   useEffect(() => {
@@ -184,6 +200,14 @@ export function ETXExperience() {
             scrollData.current.daylight = sm(
               gsap.utils.clamp(0, 1, (p - 0.8) * 5)
             );
+
+            // Velocity — normalized: px/s clamped to [0, 1] for lean + FOV warp.
+            const rawVel = Math.abs(self.getVelocity());
+            scrollData.current.velocity = gsap.utils.clamp(
+              0,
+              1,
+              rawVel / 3000
+            );
           },
         },
       });
@@ -229,6 +253,14 @@ export function ETXExperience() {
 
       // ── Stage 2 → 3: Metrics hold, then exit left ────────────────────────
       mainTl.to(".metrics-bg", { autoAlpha: 0.7, duration: 3.5 }, ">");
+
+      // ── Cinematic: Vignette darkening during metrics ─────────────────────
+      // Radial gradient edges darken to create a cinematic "focus" frame.
+      mainTl.to(
+        ".vignette-overlay",
+        { autoAlpha: 0.85, duration: 1.5, ease: "power2.inOut" },
+        "<"
+      );
       mainTl.to(
         ".metrics-sidebar",
         { autoAlpha: 0, x: -50, duration: 1.35, ease: "expo.inOut" },
@@ -243,6 +275,13 @@ export function ETXExperience() {
           ease: "expo.inOut",
           force3D: true,
         },
+        "<"
+      );
+
+      // Fade out vignette as we leave metrics
+      mainTl.to(
+        ".vignette-overlay",
+        { autoAlpha: 0, duration: 1, ease: "power2.out" },
         "<"
       );
 
@@ -311,6 +350,25 @@ export function ETXExperience() {
        * the Daylight flood begins.
        */
       mainTl.to({}, { duration: 2.5 });
+
+      // ── Cinematic: Ghost trail streak during charging rocket exit ────────
+      // An orange horizontal streak that slides across as the model rockets away.
+      mainTl.fromTo(
+        ".ghost-trail",
+        { autoAlpha: 0, xPercent: -120 },
+        {
+          autoAlpha: 0.6,
+          xPercent: 120,
+          duration: 1.2,
+          ease: "power4.in",
+        },
+        "<1.5" // fires in the back half of the charging breath
+      );
+      mainTl.to(".ghost-trail", {
+        autoAlpha: 0,
+        duration: 0.3,
+        ease: "power2.out",
+      });
 
       // ── Stage 5: Daylight — cream flood + "Freedom Defined" ───────────────
       mainTl.to(
@@ -429,8 +487,12 @@ export function ETXExperience() {
               performance={{ min: lowPower ? 0.4 : 0.5 }}
             >
               <EtxStudioRig>
-                {/* VehicleScene reads scrollData ref every frame via useFrame */}
-                <VehicleScene scrollData={scrollData} />
+                {/* VehicleScene reads scrollData + mouseRef every frame */}
+                <VehicleScene
+                  scrollData={scrollData}
+                  mouseRef={mouseRef}
+                  lowPower={lowPower}
+                />
               </EtxStudioRig>
             </Canvas>
           </CanvasErrorBoundary>
@@ -441,6 +503,28 @@ export function ETXExperience() {
         <MetricsSidebar />
         <UrbanSidebar />
         <DaylightSidebar />
+
+        {/* ── Cinematic: Vignette overlay (GSAP-controlled) ─────────────── */}
+        <div
+          aria-hidden
+          className="vignette-overlay absolute inset-0 z-[36] pointer-events-none opacity-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%)",
+          }}
+        />
+
+        {/* ── Cinematic: Ghost trail streak (charging rocket exit) ───────── */}
+        <div
+          aria-hidden
+          className="ghost-trail absolute top-1/2 left-0 z-[9] w-full h-[6px] -translate-y-1/2 pointer-events-none opacity-0 rounded-full"
+          style={{
+            background:
+              "linear-gradient(90deg, transparent 0%, #FF6B00 30%, #FF8C00 50%, #FF6B00 70%, transparent 100%)",
+            filter: "blur(3px)",
+            boxShadow: "0 0 20px rgba(255,107,0,0.6), 0 0 40px rgba(255,107,0,0.3)",
+          }}
+        />
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════

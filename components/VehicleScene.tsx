@@ -16,6 +16,15 @@ const BASE_Y_ROTATION = Math.PI;
 
 type AnyMaterial = THREE.Material & { opacity?: number; transparent?: boolean };
 
+/** PBR material with emissive / roughness / metalness — used for light + body-paint effects. */
+type PBRMaterial = THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial;
+
+/** Material names in the GLTF that correspond to vehicle lights (DRL, headlights, indicators). */
+const EMISSIVE_MAT_NAMES = /^(DRL|Luminus Light|Tail light DRL|Indicator Bulb|Indicator Glass)$/i;
+
+/** Material names that correspond to the exterior body paint (for roughness/metalness morph). */
+const BODY_PAINT_MAT_NAME = /^Body Paint$/i;
+
 export const VehicleModel = React.forwardRef<
   THREE.Group,
   React.ComponentPropsWithoutRef<"group">
@@ -86,8 +95,14 @@ export type { ScrollData };
 
 export const VehicleScene = ({
   scrollData,
+  mouseRef,
+  lowPower = false,
 }: {
   scrollData: React.MutableRefObject<ScrollData>;
+  /** Normalized cursor position (−1…1) from ETXExperience. Drives micro-rotations. */
+  mouseRef?: React.MutableRefObject<{ x: number; y: number }>;
+  /** When true, skip all cinematic GPU effects (FOV warp, emissive, morph, shiver). */
+  lowPower?: boolean;
 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const vehicleRef = useRef<THREE.Group>(null);
@@ -108,20 +123,53 @@ export const VehicleScene = ({
   const materialsRef = useRef<AnyMaterial[]>([]);
   const lastOpacityRef = useRef<number>(-1);
 
+  /** PBR materials on headlights / DRLs — for emissive pulse. */
+  const emissiveMatRefs = useRef<PBRMaterial[]>([]);
+  /** PBR materials on the body paint — for roughness/metalness morph. */
+  const bodyPaintMatRefs = useRef<PBRMaterial[]>([]);
+  /** Original roughness/metalness values so we can lerp from them. */
+  const bodyPaintOriginals = useRef<{ r: number; m: number }[]>([]);
+
   useEffect(() => {
     if (!vehicleRef.current) return;
     const mats: AnyMaterial[] = [];
+    const emissiveMats: PBRMaterial[] = [];
+    const bodyMats: PBRMaterial[] = [];
+    const bodyOriginals: { r: number; m: number }[] = [];
+
     vehicleRef.current.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
-        if (Array.isArray(mesh.material)) {
-          mesh.material.forEach((m) => mats.push(m as AnyMaterial));
-        } else if (mesh.material) {
-          mats.push(mesh.material as AnyMaterial);
+        const matList = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        for (const m of matList) {
+          if (!m) continue;
+          mats.push(m as AnyMaterial);
+
+          // Classify PBR materials by name for per-frame effects
+          if (
+            m instanceof THREE.MeshStandardMaterial ||
+            m instanceof THREE.MeshPhysicalMaterial
+          ) {
+            if (EMISSIVE_MAT_NAMES.test(m.name)) {
+              emissiveMats.push(m);
+            }
+            if (BODY_PAINT_MAT_NAME.test(m.name)) {
+              bodyMats.push(m);
+              bodyOriginals.push({
+                r: m.roughness,
+                m: m.metalness,
+              });
+            }
+          }
         }
       }
     });
     materialsRef.current = mats;
+    emissiveMatRefs.current = emissiveMats;
+    bodyPaintMatRefs.current = bodyMats;
+    bodyPaintOriginals.current = bodyOriginals;
   });
 
   const smoothed = useRef({
@@ -131,13 +179,15 @@ export const VehicleScene = ({
     scale: 0.6,
     rotationY: BASE_Y_ROTATION - Math.PI * 0.15,
     tilt: 0,
+    pitch: 0,
     opacity: 1,
   });
 
   useFrame((state, delta) => {
     if (!groupRef.current || !vehicleRef.current) return;
 
-    const { hero, metrics, urban, charging, daylight } = scrollData.current;
+    const { hero, metrics, urban, charging, daylight, velocity } =
+      scrollData.current;
     const isMobile = isMobileRef.current;
     /** Elapsed seconds — used for time-based idle animations (e.g. charging bob). */
     const elapsed = state.clock.elapsedTime;
@@ -337,6 +387,26 @@ export const VehicleScene = ({
       targetOpacity = 1;
     }
 
+    // ── Cinematic: Velocity lean ──────────────────────────────────────────
+    // When scrolling fast, lean the vehicle into the movement direction.
+    // Skipped on lowPower — the tilt math is cheap but the visual complexity
+    // compounds with FOV warp; better to present a calm, stable model.
+    if (!isMobile && !lowPower && velocity > 0.05) {
+      targetTilt += velocity * -0.08;
+    }
+
+    // ── Cinematic: Mouse-follow micro-rotations ──────────────────────────
+    // While the hero is pinned, the vehicle tilts subtly toward the cursor.
+    // Skipped on lowPower — avoids per-frame pointer math overhead.
+    let targetPitch = 0;
+    if (!isMobile && !lowPower && mouseRef?.current) {
+      const inPinnedStages = hero > 0 || metrics > 0 || urban > 0;
+      if (inPinnedStages && charging === 0 && daylight === 0) {
+        targetTilt += mouseRef.current.x * 0.025;
+        targetPitch = mouseRef.current.y * -0.02;
+      }
+    }
+
     // ── Stage 7: Damping & Apply ─────────────────────────────────────────
     const dt = Math.min(delta, 0.05);
     const damp = (current: number, target: number, lambda: number) =>
@@ -364,6 +434,7 @@ export const VehicleScene = ({
       lr,
     );
     smoothed.current.tilt = damp(smoothed.current.tilt, targetTilt, lr);
+    smoothed.current.pitch = damp(smoothed.current.pitch, targetPitch, lr);
     const opacityLambda =
       mobileUrban && smoothed.current.opacity < 0.92 ? 28 : 12;
     smoothed.current.opacity = damp(
@@ -381,7 +452,59 @@ export const VehicleScene = ({
     v.scale.setScalar(smoothed.current.scale);
     v.rotation.y = smoothed.current.rotationY;
     v.rotation.z = smoothed.current.tilt;
+    v.rotation.x = smoothed.current.pitch;
 
+    // ── Cinematic: FOV warp (velocity-driven) ────────────────────────────
+    // Fast scrolling widens the FOV from 30° to ~42°, creating a speed warp.
+    // Skipped on lowPower — updateProjectionMatrix() every frame is expensive.
+    if (!isMobile && !lowPower) {
+      const cam = state.camera as THREE.PerspectiveCamera;
+      const targetFov = 30 + velocity * 12;
+      cam.fov = THREE.MathUtils.damp(cam.fov, targetFov, 4, dt);
+      cam.updateProjectionMatrix();
+    }
+
+    // ── Cinematic: Camera micro-shiver (Urban stage) ─────────────────────
+    // Tiny noise offsets simulate the vibration of driving on asphalt.
+    // Skipped on lowPower — random() calls + camera mutation every frame.
+    if (!isMobile && !lowPower && urban > 0.1 && urban < 0.9) {
+      const intensity = Math.sin(urban * Math.PI); // peaks at urban=0.5
+      const cam = state.camera;
+      cam.position.x += (Math.random() - 0.5) * 0.004 * intensity;
+      cam.position.y += (Math.random() - 0.5) * 0.003 * intensity;
+    }
+
+    // ── Cinematic: Emissive headlight pulse (Hero stage) ──────────────────
+    // DRL / headlight materials glow orange in sync with hero progress.
+    // Skipped on lowPower — emissive changes trigger shader uniform uploads.
+    if (!lowPower && emissiveMatRefs.current.length > 0) {
+      const emPulse = hero > 0
+        ? hero * 2.5 * (0.8 + 0.2 * Math.sin(elapsed * 6))
+        : 0;
+      for (const mat of emissiveMatRefs.current) {
+        mat.emissive.setHex(0xff6b00);
+        mat.emissiveIntensity = emPulse;
+        mat.needsUpdate = true;
+      }
+    }
+
+    // ── Cinematic: Material morph matte→gloss (Hero stage) ───────────────
+    // Body paint transitions from matte prototype to high-gloss performance.
+    // Skipped on lowPower — per-frame roughness/metalness writes trigger
+    // GPU material re-uploads which is the most expensive cinematic effect.
+    if (!lowPower && bodyPaintMatRefs.current.length > 0 && hero > 0) {
+      const originals = bodyPaintOriginals.current;
+      for (let i = 0; i < bodyPaintMatRefs.current.length; i++) {
+        const mat = bodyPaintMatRefs.current[i];
+        const orig = originals[i];
+        if (!orig) continue;
+        // Lerp: roughness goes down (glossy), metalness goes up (reflective)
+        mat.roughness = THREE.MathUtils.lerp(orig.r, Math.max(0.18, orig.r * 0.35), hero);
+        mat.metalness = THREE.MathUtils.lerp(orig.m, Math.min(0.92, orig.m + 0.55), hero);
+      }
+    }
+
+    // ── Opacity write ────────────────────────────────────────────────────
     const o = smoothed.current.opacity;
     if (Math.abs(o - lastOpacityRef.current) > 0.005) {
       const mats = materialsRef.current;

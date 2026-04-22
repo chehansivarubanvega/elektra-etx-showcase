@@ -50,6 +50,7 @@ export function HomePageClient() {
     urban: 0,
     charging: 0,
     daylight: 0,
+    velocity: 0,
   });
 
   useEffect(() => {

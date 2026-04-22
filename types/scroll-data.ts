@@ -17,4 +17,6 @@ export type ScrollData = {
   charging: number;
   /** Stage 5: cream flood + "Freedom Defined" — full-width traverse + fade. */
   daylight: number;
+  /** Normalized scroll velocity: 0 = idle, 1 = fast scroll. Drives lean + FOV warp. */
+  velocity: number;
 };
