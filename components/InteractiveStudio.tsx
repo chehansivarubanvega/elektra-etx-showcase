@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useRef, useState, useEffect } from 'react';
+import React, { Suspense, useMemo, useRef, useState, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, useProgress } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
@@ -8,7 +8,11 @@ import gsap from 'gsap';
 import { Loader2 } from 'lucide-react';
 import { VehicleModel } from './VehicleScene';
 import { CanvasErrorBoundary } from './CanvasErrorBoundary';
-import { EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps } from './EtxStudioRig';
+import { EtxStudioRig, etxStudioGlProps } from './EtxStudioRig';
+import {
+  useTabVisibleFrameloop,
+  useWebGLBudget,
+} from '@/components/WebGLBudgetContext';
 
 const CanvasLoader = () => {
   const { progress } = useProgress();
@@ -80,6 +84,16 @@ function CanvasPointerHitTarget({ interactable }: { interactable: boolean }) {
 }
 
 const InteractiveStudio = () => {
+  const { dpr, antialias, lowPower } = useWebGLBudget();
+  const gl = useMemo(
+    () =>
+      etxStudioGlProps({
+        antialias,
+        powerPreference: lowPower ? 'default' : 'high-performance',
+      }),
+    [antialias, lowPower],
+  );
+
   const [interacted, setInteracted] = useState(false);
   const [showHelper, setShowHelper] = useState(true);
   const [inView, setInView] = useState(false);
@@ -110,11 +124,14 @@ const InteractiveStudio = () => {
       queueMicrotask(() => setInView(true));
       return;
     }
+    const rootMargin = globalThis.matchMedia(MOBILE_MQ).matches
+      ? '0px 0px 48px 0px'
+      : '200px 0px';
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) setInView(entry.isIntersecting);
       },
-      { rootMargin: '200px 0px' },
+      { rootMargin },
     );
     io.observe(sectionRef.current);
     return () => io.disconnect();
@@ -158,6 +175,7 @@ const InteractiveStudio = () => {
   };
 
   const orbitEnabled = !isMobileLayout || mobileOrbitOn;
+  const frameLoop = useTabVisibleFrameloop(orbitEnabled);
   /** Wrapper alone is not enough: the WebGL canvas defaults to `pointer-events: auto`,
    *  so touches still hit the canvas and OrbitControls (even when `enabled={false}`)
    *  can keep `touch-action: none` on the element — blocking vertical page scroll.
@@ -181,11 +199,11 @@ const InteractiveStudio = () => {
             <CanvasErrorBoundary>
               <Canvas
                 shadows
-                dpr={ETX_STUDIO_DPR}
-                frameloop={orbitEnabled ? 'always' : 'demand'}
-                gl={etxStudioGlProps()}
+                dpr={dpr}
+                frameloop={frameLoop}
+                gl={gl}
                 camera={{ position: [8, 4, 8], fov: 35 }}
-                performance={{ min: 0.5 }}
+                performance={{ min: lowPower ? 0.4 : 0.5 }}
                 className={
                   orbitEnabled
                     ? 'h-full w-full min-h-0 cursor-grab active:cursor-grabbing'

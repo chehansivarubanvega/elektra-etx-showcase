@@ -4,6 +4,7 @@ import * as THREE from "three";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { ContactShadows, Environment } from "@react-three/drei";
+import { useWebGLBudget } from "@/components/WebGLBudgetContext";
 
 /** Self-hosted studio HDR (CSP; same as @react-three/drei `studio` feel). */
 export const ETX_STUDIO_HDR = "/hdr/studio_small_03_1k.hdr" as const;
@@ -15,6 +16,7 @@ export function etxStudioGlProps(
   overrides?: Partial<{
     antialias: boolean;
     toneMappingExposure: number;
+    powerPreference: "default" | "high-performance" | "low-power";
   }> & { stencil?: boolean; depth?: boolean },
 ) {
   return {
@@ -23,6 +25,8 @@ export function etxStudioGlProps(
     alpha: true,
     toneMapping: THREE.ACESFilmicToneMapping,
     toneMappingExposure: 0.96,
+    /** iOS is stricter about lost contexts if this fails — default false in three.js */
+    failIfMajorPerformanceCaveat: false,
     ...overrides,
   };
 }
@@ -32,6 +36,8 @@ type EtxStudioRigProps = Readonly<{
   /** World Y for the contact-shadow plane; tune per layout if the ground reads off. */
   contactShadowY?: number;
   contactShadowScale?: number;
+  /** Force lighter lights/shadows (otherwise follows `WebGLBudgetProvider`). */
+  lowPower?: boolean;
 }>;
 
 /**
@@ -44,7 +50,14 @@ export function EtxStudioRig({
   children,
   contactShadowY = -2.55,
   contactShadowScale = 16,
+  lowPower: lowPowerProp,
 }: EtxStudioRigProps) {
+  const { lowPower: fromBudget } = useWebGLBudget();
+  const lowPower = lowPowerProp ?? fromBudget;
+  const shadowMap = lowPower ? 1024 : 2048;
+  const contactRes = lowPower ? 512 : 1024;
+  const envIntensity = lowPower ? 0.52 : 0.64;
+
   return (
     <>
       <hemisphereLight args={["#5c6a88", "#140a0a", 0.4]} />
@@ -54,8 +67,8 @@ export function EtxStudioRig({
         intensity={2.05}
         color="#fff4e6"
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={shadowMap}
+        shadow-mapSize-height={shadowMap}
         shadow-bias={-0.0002}
       />
       <directionalLight
@@ -73,15 +86,15 @@ export function EtxStudioRig({
         <Environment
           files={ETX_STUDIO_HDR}
           background={false}
-          environmentIntensity={0.64}
+          environmentIntensity={envIntensity}
         />
         <ContactShadows
           position={[0, contactShadowY, 0]}
-          opacity={0.55}
+          opacity={lowPower ? 0.48 : 0.55}
           scale={contactShadowScale}
-          blur={2.6}
-          far={4.5}
-          resolution={1024}
+          blur={lowPower ? 2 : 2.6}
+          far={lowPower ? 4 : 4.5}
+          resolution={contactRes}
           color="#000000"
         />
       </Suspense>

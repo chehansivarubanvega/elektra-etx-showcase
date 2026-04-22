@@ -19,13 +19,18 @@
  */
 
 import React, { useEffect, useMemo, useRef } from "react";
+import {
+  useTabVisibleFrameloop,
+  useWebGLBudget,
+} from "@/components/WebGLBudgetContext";
 import {Canvas, useFrame, useThree} from "@react-three/fiber";
 import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 import {toneDownEtxReflections} from "@/lib/etx-vehicle-materials";
-import {EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps} from "./EtxStudioRig";
+import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
+import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
 const MAX_FLEET = 5;
@@ -391,26 +396,41 @@ export const ConfiguratorCanvas = ({
   onLaunchComplete,
   onCanvasPointer,
 }: ConfiguratorCanvasProps) => {
+  const {dpr, antialias, lowPower} = useWebGLBudget();
+  const gl = useMemo(
+    () =>
+      etxStudioGlProps({
+        antialias,
+        powerPreference: lowPower ? "default" : "high-performance",
+      }),
+    [antialias, lowPower],
+  );
+  const frameloop = useTabVisibleFrameloop(true);
+
   return (
-    <Canvas
-      dpr={ETX_STUDIO_DPR}
-      shadows
-      camera={{position: FOCUS_CAMERA.idle.pos, fov: FOCUS_CAMERA.idle.fov}}
-      gl={etxStudioGlProps()}
-      onPointerOver={() => onCanvasPointer?.(true)}
-      onPointerOut={() => onCanvasPointer?.(false)}
-    >
-      <color attach="background" args={["#000000"]} />
+    <CanvasErrorBoundary>
+      <Canvas
+        dpr={dpr}
+        frameloop={frameloop}
+        shadows
+        camera={{position: FOCUS_CAMERA.idle.pos, fov: FOCUS_CAMERA.idle.fov}}
+        gl={gl}
+        performance={{min: lowPower ? 0.4 : 0.5}}
+        onPointerOver={() => onCanvasPointer?.(true)}
+        onPointerOut={() => onCanvasPointer?.(false)}
+      >
+        <color attach="background" args={["#000000"]} />
 
-      <EtxStudioRig contactShadowY={-1.45} contactShadowScale={18}>
-        <GhostFleet state={state} />
-        <ETXModel state={state} />
-      </EtxStudioRig>
+        <EtxStudioRig contactShadowY={-1.45} contactShadowScale={18}>
+          <GhostFleet state={state} />
+          <ETXModel state={state} />
+        </EtxStudioRig>
 
-      <LightSpeedField launching={state.launching} />
-      <CameraDirector focus={state.focus} />
-      <LaunchWatchdog launching={state.launching} onComplete={onLaunchComplete} />
-    </Canvas>
+        <LightSpeedField launching={state.launching} />
+        <CameraDirector focus={state.focus} />
+        <LaunchWatchdog launching={state.launching} onComplete={onLaunchComplete} />
+      </Canvas>
+    </CanvasErrorBoundary>
   );
 };
 

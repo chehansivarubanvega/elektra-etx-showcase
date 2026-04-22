@@ -12,7 +12,12 @@ import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 import {toneDownEtxReflections} from "@/lib/etx-vehicle-materials";
-import {EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps} from "./EtxStudioRig";
+import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
+import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
+import {
+  useTabVisibleFrameloop,
+  useWebGLBudget,
+} from "@/components/WebGLBudgetContext";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
 
@@ -257,6 +262,18 @@ function PulseBridge({
  * camera back and centers it so the silhouette reads on a portrait viewport.
  */
 export const ContactScene = ({pointerRef, handleRef, framing = "desktop"}: SceneProps) => {
+  const {dpr, antialias, lowPower} = useWebGLBudget();
+  const gl = useMemo(
+    () =>
+      etxStudioGlProps({
+        antialias,
+        toneMappingExposure: framing === "mobile" ? 1.02 : 0.96,
+        powerPreference: lowPower ? "default" : "high-performance",
+      }),
+    [antialias, framing, lowPower],
+  );
+  const frameloop = useTabVisibleFrameloop(true);
+
   const pulseStateRef = useRef({t: 0, firing: false});
 
   /** Mark inactive when the tab is hidden — keeps the GPU quiet on background tabs. */
@@ -279,19 +296,21 @@ export const ContactScene = ({pointerRef, handleRef, framing = "desktop"}: Scene
       : {position: [0.4, 0.6, 8.6] as [number, number, number], fov: 28};
 
   return (
-    <Canvas
-      dpr={ETX_STUDIO_DPR}
-      shadows
-      camera={cameraConfig}
-      gl={etxStudioGlProps({
-        toneMappingExposure: framing === "mobile" ? 1.02 : 0.96,
-      })}
-    >
-      <EtxStudioRig contactShadowY={-2.5}>
-        <PulseBridge handleRef={handleRef} pulseStateRef={pulseStateRef} />
-        <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} framing={framing} />
-      </EtxStudioRig>
-    </Canvas>
+    <CanvasErrorBoundary>
+      <Canvas
+        dpr={dpr}
+        frameloop={frameloop}
+        shadows
+        camera={cameraConfig}
+        gl={gl}
+        performance={{min: lowPower ? 0.4 : 0.5}}
+      >
+        <EtxStudioRig contactShadowY={-2.5}>
+          <PulseBridge handleRef={handleRef} pulseStateRef={pulseStateRef} />
+          <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} framing={framing} />
+        </EtxStudioRig>
+      </Canvas>
+    </CanvasErrorBoundary>
   );
 };
 

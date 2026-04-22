@@ -1,6 +1,10 @@
 "use client";
 
 import React, {useCallback, useMemo, useRef, useState, useEffect} from "react";
+import {
+  useTabVisibleFrameloop,
+  useWebGLBudget,
+} from "@/components/WebGLBudgetContext";
 import {Canvas, useFrame, useThree} from "@react-three/fiber";
 import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
@@ -9,7 +13,7 @@ import {
   applyEtxBodyPaint,
   toneDownEtxReflectionsOnObject,
 } from "@/lib/etx-vehicle-materials";
-import {EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps} from "./EtxStudioRig";
+import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
 import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
@@ -146,6 +150,17 @@ type SceneProps = Readonly<{
  *  Wrapped in an error boundary and visibility gate so iOS Safari's limited
  *  WebGL context pool isn't exhausted by off-screen canvases. */
 export const ETXHeroScene = ({pointerRef}: SceneProps) => {
+  const {dpr, antialias, lowPower} = useWebGLBudget();
+  const gl = useMemo(
+    () =>
+      etxStudioGlProps({
+        antialias,
+        powerPreference: lowPower ? "default" : "high-performance",
+      }),
+    [antialias, lowPower],
+  );
+  const frameloop = useTabVisibleFrameloop(true);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   /** Track context-loss so we can remount the Canvas on restore. */
@@ -176,10 +191,11 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
         {visible && (
           <Canvas
             key={contextKey}
-            dpr={ETX_STUDIO_DPR}
+            dpr={dpr}
+            frameloop={frameloop}
             shadows
             camera={{position: [0, 0.4, 11], fov: 30}}
-            gl={etxStudioGlProps()}
+            gl={gl}
           >
             <WebGLContextRecovery onRestored={bumpContext} />
             <EtxStudioRig>

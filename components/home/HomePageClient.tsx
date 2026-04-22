@@ -1,9 +1,13 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Canvas } from "@react-three/fiber";
-import { EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps } from "@/components/EtxStudioRig";
+import { EtxStudioRig, etxStudioGlProps } from "@/components/EtxStudioRig";
+import {
+  useTabVisibleFrameloop,
+  useWebGLBudget,
+} from "@/components/WebGLBudgetContext";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -28,6 +32,17 @@ if (typeof window !== "undefined") {
 }
 
 export function HomePageClient() {
+  const { dpr, antialias, lowPower } = useWebGLBudget();
+  const gl = useMemo(
+    () =>
+      etxStudioGlProps({
+        antialias,
+        powerPreference: lowPower ? "default" : "high-performance",
+      }),
+    [antialias, lowPower],
+  );
+  const frameloop = useTabVisibleFrameloop(true);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollData = useRef({
     hero: 0,
@@ -293,11 +308,12 @@ export function HomePageClient() {
         <div className="absolute inset-0 z-10 w-full h-full">
           <CanvasErrorBoundary>
             <Canvas
-              dpr={ETX_STUDIO_DPR}
-              gl={etxStudioGlProps()}
+              dpr={dpr}
+              gl={gl}
+              frameloop={frameloop}
               camera={{ position: [0, 0, 15], fov: 30 }}
               shadows
-              performance={{ min: 0.5 }}
+              performance={{ min: lowPower ? 0.4 : 0.5 }}
             >
               <EtxStudioRig>
                 <VehicleScene scrollData={scrollData} />
