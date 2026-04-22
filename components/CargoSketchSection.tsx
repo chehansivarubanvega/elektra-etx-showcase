@@ -108,10 +108,11 @@ const CargoSketchSection = () => {
   const windowRingOpacity = useTransform(smoothFrame, [0, 0.12], [0.15, 0.55]);
 
   // Headline outlined → solid orange cross-fade
-  const headlineFillOpacity = useTransform(smoothFrame, [0.1, 0.75], [0, 1]);
+  // Tightened to [0.15, 0.7]: the solid orange state resolves ~7 % sooner.
+  const headlineFillOpacity = useTransform(smoothFrame, [0.15, 0.7], [0, 1]);
   const headlineStrokeOpacity = useTransform(
     smoothFrame,
-    [0.1, 0.75],
+    [0.15, 0.7],
     [1, 0.12],
   );
 
@@ -769,7 +770,8 @@ const Callout = ({ item, progress }: CalloutProps) => {
           style={{ scale: dotScale }}
         >
           <span className="absolute inset-0 rounded-full bg-[#FF6B00]" />
-          <span className="absolute inset-[-4px] rounded-full border border-[#FF6B00]/60" />
+          {/* Pulsing ring — fires once the callout has scaled in */}
+          <span className="absolute inset-[-4px] rounded-full border border-[#FF6B00]/60 animate-ping" />
           <span className="absolute inset-[-10px] rounded-full border border-[#FF6B00]/15" />
         </motion.span>
 

@@ -9,6 +9,7 @@ import {
   applyEtxBodyPaint,
   toneDownEtxReflections,
 } from "@/lib/etx-vehicle-materials";
+import type { ScrollData } from "@/types/scroll-data";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
 const BASE_Y_ROTATION = Math.PI;
@@ -79,13 +80,9 @@ if (typeof window !== "undefined") {
   useGLTF.preload(MODEL_PATH);
 }
 
-type ScrollData = {
-  hero: number;
-  metrics: number;
-  urban: number;
-  charging: number;
-  daylight: number;
-};
+// ScrollData is defined in types/scroll-data.ts — imported above.
+// Re-exported here so existing consumers that import from VehicleScene still compile.
+export type { ScrollData };
 
 export const VehicleScene = ({
   scrollData,
@@ -137,11 +134,13 @@ export const VehicleScene = ({
     opacity: 1,
   });
 
-  useFrame((_state, delta) => {
+  useFrame((state, delta) => {
     if (!groupRef.current || !vehicleRef.current) return;
 
     const { hero, metrics, urban, charging, daylight } = scrollData.current;
     const isMobile = isMobileRef.current;
+    /** Elapsed seconds — used for time-based idle animations (e.g. charging bob). */
+    const elapsed = state.clock.elapsedTime;
     const mobileScaleFactor = isMobile ? 0.6 : 1;
 
     const heroScale = (0.75 + hero * 0.85) * mobileScaleFactor;
@@ -192,6 +191,14 @@ export const VehicleScene = ({
     if (daylight > 0) targetX = daylightX;
 
     let targetY = 0;
+
+    // ── Stage 4: Charging — idle midpause bob ──────────────────────────────
+    // When the model is paused at the center (charging 0.35 – 0.65), apply a
+    // gentle vertical sine wave so the model feels alive rather than frozen.
+    if (charging >= 0.35 && charging <= 0.65) {
+      targetY += Math.sin(elapsed * 1.8) * 0.055;
+    }
+
     const heroZ = hero * 2.5;
     const metricsZ = 2.5 + metrics * 4.5;
     const urbanZ = THREE.MathUtils.lerp(7, 2.35, urban);
@@ -330,14 +337,22 @@ export const VehicleScene = ({
       targetOpacity = 1;
     }
 
+    // ── Stage 7: Damping & Apply ─────────────────────────────────────────
     const dt = Math.min(delta, 0.05);
     const damp = (current: number, target: number, lambda: number) =>
       THREE.MathUtils.damp(current, target, lambda, dt);
 
-    /** Slightly lower λ = longer ease (less “whip” between section poses). */
-    const lp = 6.6;
-    const lr = 6.2;
-    const ls = 7.2;
+    /**
+     * Damping lambda constants (exponential damp via THREE.MathUtils.damp).
+     * Higher λ = snappier follow. Tuned for a vehicle with mass: responsive
+     * enough to feel reactive, but never "whipping" between section poses.
+     *   lp — position (X, Y, Z)
+     *   lr — rotation (Y, Z tilt)
+     *   ls — scale
+     */
+    const lp = 7.0;
+    const lr = 6.5;
+    const ls = 7.5;
 
     smoothed.current.x = damp(smoothed.current.x, targetX, lp);
     smoothed.current.y = damp(smoothed.current.y, targetY, lp);

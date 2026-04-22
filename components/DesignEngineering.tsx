@@ -250,7 +250,11 @@ const DesignEngineering = () => {
               <canvas
                 ref={canvasRef}
                 className="h-full w-full object-contain"
-                style={{ filter: "brightness(1.1) contrast(1.05)" }}
+                style={{
+                  filter: "brightness(1.08) contrast(1.06) saturate(1.04)",
+                  transform: "translateZ(0)",
+                  willChange: "transform",
+                }}
               />
 
               {!imagesReady && (
