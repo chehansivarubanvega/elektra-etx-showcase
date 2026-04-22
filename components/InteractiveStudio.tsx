@@ -89,7 +89,7 @@ const InteractiveStudio = () => {
     () =>
       etxStudioGlProps({
         antialias,
-        powerPreference: lowPower ? 'default' : 'high-performance',
+        powerPreference: lowPower ? 'low-power' : 'high-performance',
       }),
     [antialias, lowPower],
   );

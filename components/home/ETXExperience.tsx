@@ -32,9 +32,7 @@ import { Loader } from "@/components/Loader";
 import SnapController from "@/components/SnapController";
 import { CanvasErrorBoundary } from "@/components/CanvasErrorBoundary";
 import {
-  applyEtxBodyPaint,
-  downgradeEtxMaterialsForMobile,
-  toneDownEtxReflectionsOnObject,
+  optimizeVehicle,
 } from "@/lib/etx-vehicle-materials";
 import { scheduleHomeScrollSequencesWarmup } from "@/lib/site-assets";
 import type { ScrollData } from "@/types/scroll-data";

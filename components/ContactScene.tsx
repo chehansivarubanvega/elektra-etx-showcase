@@ -12,8 +12,7 @@ import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 import {
-  toneDownEtxReflections,
-  downgradeEtxMaterialsForMobile,
+  optimizeVehicle,
 } from "@/lib/etx-vehicle-materials";
 import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
 import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
@@ -73,39 +72,19 @@ function ContactModel({pointerRef, pulseStateRef, framing, lowPower}: ModelProps
    *  visible frustum on desktop (wide) AND mobile (taller, narrower viewport). */
   const {cloned, emissiveMaterials} = useMemo(() => {
     const clone = scene.clone(true);
-    const mats: THREE.MeshStandardMaterial[] = [];
+    optimizeVehicle(clone, !!lowPower);
 
-    clone.traverse((child) => {
-      if (!(child as THREE.Mesh).isMesh) return;
-      const mesh = child as THREE.Mesh;
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.frustumCulled = true;
-
-      /** Clone the original material AS-IS (preserves color, maps, type — works
-       *  for MeshStandardMaterial AND MeshPhysicalMaterial). Then layer our
-       *  brand-orange emissive on top so we never destroy the model's PBR look.
-       *  Only standard-family materials support `emissive`/`emissiveIntensity`,
-       *  so non-standard materials are simply cloned and skipped for emissive.
-       */
-      const wrap = (m: THREE.Material): THREE.Material => {
-        const c = m.clone();
-        toneDownEtxReflections(c);
-        if (
-          c instanceof THREE.MeshStandardMaterial ||
-          c instanceof THREE.MeshPhysicalMaterial
-        ) {
-          c.emissive = new THREE.Color("#FF5722");
-          c.emissiveIntensity = 0;
-          mats.push(c);
+    const mats: (THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial)[] = [];
+    clone.traverse((o) => {
+      if (o instanceof THREE.Mesh && o.material) {
+        const list = Array.isArray(o.material) ? o.material : [o.material];
+        for (const m of list) {
+          if (m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhysicalMaterial) {
+            m.emissive = new THREE.Color("#FF5722");
+            m.emissiveIntensity = 0;
+            mats.push(m);
+          }
         }
-        return c;
-      };
-
-      if (Array.isArray(mesh.material)) {
-        mesh.material = mesh.material.map(wrap);
-      } else if (mesh.material) {
-        mesh.material = wrap(mesh.material);
       }
     });
 
@@ -123,10 +102,6 @@ function ContactModel({pointerRef, pulseStateRef, framing, lowPower}: ModelProps
     const center = new THREE.Vector3();
     centered.getCenter(center);
     clone.position.sub(center);
-
-    if (lowPower) {
-      downgradeEtxMaterialsForMobile(clone);
-    }
 
     return {cloned: clone, emissiveMaterials: mats};
   }, [scene, framing, lowPower]);

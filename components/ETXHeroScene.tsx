@@ -10,9 +10,7 @@ import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 import {
-  applyEtxBodyPaint,
-  downgradeEtxMaterialsForMobile,
-  toneDownEtxReflectionsOnObject,
+  optimizeVehicle,
 } from "@/lib/etx-vehicle-materials";
 import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
 import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
@@ -42,14 +40,7 @@ function ETXModel({pointerRef, lowPower}: ModelProps & {lowPower?: boolean}) {
   /** Clone + center + uniformly scale so the model fills a consistent viewport box. */
   const cloned = useMemo(() => {
     const clone = scene.clone(true);
-    clone.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.frustumCulled = true;
-      }
-    });
+    optimizeVehicle(clone, !!lowPower);
 
     const box = new THREE.Box3().setFromObject(clone);
     const size = new THREE.Vector3();
@@ -63,14 +54,21 @@ function ETXModel({pointerRef, lowPower}: ModelProps & {lowPower?: boolean}) {
     centered.getCenter(center);
     clone.position.sub(center);
 
-    if (lowPower) {
-      downgradeEtxMaterialsForMobile(clone);
-    } else {
-      toneDownEtxReflectionsOnObject(clone);
-    }
-    applyEtxBodyPaint(clone);
+
     return clone;
   }, [scene, lowPower]);
+
+  useEffect(() => {
+    return () => {
+      cloned.traverse((o) => {
+        if (o instanceof THREE.Mesh) {
+          o.geometry.dispose();
+          const mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach((m) => m?.dispose());
+        }
+      });
+    };
+  }, [cloned]);
 
   const groupRef = useRef<THREE.Group>(null);
   const tiltRef = useRef<THREE.Group>(null);

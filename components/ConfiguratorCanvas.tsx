@@ -29,8 +29,7 @@ import * as THREE from "three";
 import gsap from "gsap";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 import {
-  toneDownEtxReflections,
-  downgradeEtxMaterialsForMobile,
+  optimizeVehicle,
 } from "@/lib/etx-vehicle-materials";
 import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
 import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
@@ -103,24 +102,7 @@ function ETXModel({
   // hero's color lerp doesn't bleed into the ghosted fleet.
   const cloned = useMemo(() => {
     const clone = scene.clone(true);
-    clone.traverse((c) => {
-      const mesh = c as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      mesh.castShadow = !ghosted;
-      mesh.receiveShadow = !ghosted;
-      mesh.frustumCulled = true;
-      if (Array.isArray(mesh.material)) {
-        mesh.material = mesh.material.map((m) => {
-          const c = m.clone();
-          toneDownEtxReflections(c);
-          return c;
-        });
-      } else if (mesh.material) {
-        const c = (mesh.material as THREE.Material).clone();
-        toneDownEtxReflections(c);
-        mesh.material = c;
-      }
-    });
+    optimizeVehicle(clone, !!lowPower);
 
     // Center + uniform scale to a predictable bounding box.
     const box = new THREE.Box3().setFromObject(clone);
@@ -133,9 +115,7 @@ function ETXModel({
     const center = new THREE.Vector3();
     cb.getCenter(center);
     clone.position.sub(center);
-    if (lowPower) {
-      downgradeEtxMaterialsForMobile(clone);
-    }
+
 
     return clone;
   }, [scene, ghosted, lowPower]);

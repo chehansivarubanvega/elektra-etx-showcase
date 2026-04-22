@@ -1,5 +1,5 @@
 /** ETX vehicle: generated bundle `etx-exterior-panels/` (see `npm run model:export-gltf`). */
-export const ETX_EXTERIOR_GLB = "/models/etx-exterior-panels/etx.gltf";
+export const ETX_EXTERIOR_GLB = "/models/etx-exterior-panels/etx.glb";
 
 export const HERO_SCROLL_BG_IMAGES = [
   "/images/sigiriya.png",

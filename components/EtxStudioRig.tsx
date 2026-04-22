@@ -9,7 +9,6 @@ import { useWebGLBudget } from "@/components/WebGLBudgetContext";
 /** Self-hosted studio HDR (CSP; same as @react-three/drei `studio` feel). */
 export const ETX_STUDIO_HDR = "/hdr/studio_small_03_1k.hdr" as const;
 
-export const ETX_STUDIO_DPR: [number, number] = [1, 1.6];
 
 /** Aligned with `ETXHeroScene` (About) — use on every ETX `Canvas` for a consistent look. */
 export function etxStudioGlProps(

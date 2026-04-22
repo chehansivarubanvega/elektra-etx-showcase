@@ -6,9 +6,7 @@ import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { ETX_EXTERIOR_GLB } from "@/lib/site-assets";
 import {
-  applyEtxBodyPaint,
-  toneDownEtxReflections,
-  downgradeEtxMaterialsForMobile,
+  optimizeVehicle,
 } from "@/lib/etx-vehicle-materials";
 import type { ScrollData } from "@/types/scroll-data";
 
@@ -35,38 +33,7 @@ export const VehicleModel = React.forwardRef<
 
   const clonedScene = useMemo(() => {
     const clone = scene.clone(true);
-    clone.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = !lowPower;
-        child.receiveShadow = !lowPower;
-        child.frustumCulled = true;
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material = child.material.map((m) => {
-              const cloned = m.clone() as AnyMaterial;
-              cloned.transparent = true;
-              if (lowPower) {
-                cloned.precision = "lowp";
-              }
-              toneDownEtxReflections(cloned);
-              return cloned;
-            });
-          } else {
-            const mat = (child.material as AnyMaterial).clone() as AnyMaterial;
-            mat.transparent = true;
-            if (lowPower) {
-              mat.precision = "lowp";
-            }
-            toneDownEtxReflections(mat);
-            child.material = mat;
-          }
-        }
-      }
-    });
-
-    if (lowPower) {
-      downgradeEtxMaterialsForMobile(clone);
-    }
+    optimizeVehicle(clone, !!lowPower);
 
     const box = new THREE.Box3().setFromObject(clone);
     const size = new THREE.Vector3();
@@ -83,7 +50,7 @@ export const VehicleModel = React.forwardRef<
     centeredBox.getCenter(center);
     clone.position.sub(center);
 
-    applyEtxBodyPaint(clone);
+
     return clone;
   }, [scene, lowPower]);
 

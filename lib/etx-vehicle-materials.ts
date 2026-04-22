@@ -73,98 +73,68 @@ export function applyEtxBodyPaint(
 }
 
 /**
- * Tones down IBL / specular "hot" highlights on the ETX PBR body without re-exporting the GLB.
- * Applied to cloned materials wherever the vehicle is instanced.
+ * Centralized vehicle optimization engine.
+ * Handles both "High Performance" (glossy PBR) and "Low Power" (matte stripped) modes.
+ * 
+ * @param root The THREE.Object3D (vehicle) to optimize.
+ * @param lowPower Whether to apply aggressive mobile optimizations (strip textures, cull interior).
  */
-export function toneDownEtxReflections(material: THREE.Material): void {
-  if (
-    !(
-      material instanceof THREE.MeshStandardMaterial ||
-      material instanceof THREE.MeshPhysicalMaterial
-    )
-  ) {
-    return;
-  }
-
-  const m = material;
-  m.envMapIntensity = (m.envMapIntensity ?? 1) * 0.4;
-  m.roughness = Math.min(1, (m.roughness ?? 0.5) + 0.16);
-  m.metalness = Math.max(0, (m.metalness ?? 0) * 0.86);
-
-  if (m instanceof THREE.MeshPhysicalMaterial) {
-    m.clearcoat = Math.max(0, (m.clearcoat ?? 0) * 0.42);
-    m.clearcoatRoughness = Math.min(1, (m.clearcoatRoughness ?? 0) + 0.32);
-    m.sheen = Math.max(0, (m.sheen ?? 0) * 0.45);
-    m.specularIntensity = Math.max(
-      0.15,
-      (m.specularIntensity ?? 1) * 0.55,
-    );
-  }
-}
-
-export function toneDownEtxReflectionsOnObject(root: THREE.Object3D): void {
+export function optimizeVehicle(root: THREE.Object3D, lowPower: boolean): void {
   root.traverse((o) => {
-    if (o instanceof THREE.Mesh && o.material) {
-      const list = Array.isArray(o.material) ? o.material : [o.material];
-      for (const mat of list) {
-        if (mat) toneDownEtxReflections(mat);
-      }
-    }
-  });
-}
-
-/**
- * Aggressive material stripping for low-end mobile.
- * Converts expensive MeshPhysicalMaterial to MeshStandardMaterial and
- * removes high-overhead features like clearcoat, sheen, and transmission.
- */
-export function downgradeEtxMaterialsForMobile(root: THREE.Object3D): void {
-  root.traverse((o) => {
-    // 1. Cull internal geometry that isn't visible from the outside.
-    // This saves massive amounts of VRAM and vertex processing on mobile.
-    if (o instanceof THREE.Mesh) {
+    // 1. Cull internal geometry in lowPower mode to save vertex budget.
+    if (lowPower && o instanceof THREE.Mesh) {
       const n = o.name.toLowerCase();
-      const isInternal = /\b(interior|seat|leather|floor|screen|steering|pedal|carpet|headrest)\b/i.test(n);
-      if (isInternal) {
+      if (/\b(interior|seat|leather|floor|screen|steering|pedal|carpet|headrest|mirror_int)\b/i.test(n)) {
         o.visible = false;
         o.castShadow = false;
         o.receiveShadow = false;
-        return; // Skip material processing for hidden meshes
+        return;
       }
     }
 
     if (!(o instanceof THREE.Mesh) || !o.material) return;
 
-    const convert = (m: THREE.Material): THREE.Material => {
-      const prev = m as THREE.MeshStandardMaterial;
-      
-      // Safety: Strip textures and environment maps to avoid GPU saturation.
-      // 1x1 PNGs and KTX2 placeholders can sometimes cause driver hangs.
-      const next = new THREE.MeshStandardMaterial({
-        color: prev.color,
-        roughness: 0.9, // Matte is cheaper to calculate than glossy
-        metalness: 0,
-        flatShading: true, // Bypass normal interpolation
-        transparent: prev.transparent,
-        opacity: prev.opacity,
-        map: null,
-        normalMap: null,
-        roughnessMap: null,
-        metalnessMap: null,
-        envMap: null, // No reflections on mobile
-        envMapIntensity: 0,
-        name: prev.name + "_low",
-      });
+    const process = (m: THREE.Material): THREE.Material => {
+      if (!(m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhysicalMaterial)) {
+        return m;
+      }
 
-      // Dispose of the expensive material to free GPU memory.
-      prev.dispose();
-      return next;
+      if (lowPower) {
+        // "Safety Mode": Strip everything to avoid GPU hangs on low-end hardware.
+        const next = new THREE.MeshStandardMaterial({
+          color: m.color,
+          roughness: 0.9,
+          metalness: 0,
+          flatShading: true,
+          transparent: m.transparent,
+          opacity: m.opacity,
+          name: m.name + "_low",
+        });
+        m.dispose();
+        return next;
+      }
+
+      // "Cinematic Mode": Tone down hot highlights for a premium studio look.
+      const pm = m;
+      pm.envMapIntensity = (pm.envMapIntensity ?? 1) * 0.4;
+      pm.roughness = Math.min(1, (pm.roughness ?? 0.5) + 0.16);
+      pm.metalness = Math.max(0, (pm.metalness ?? 0) * 0.86);
+
+      if (pm instanceof THREE.MeshPhysicalMaterial) {
+        pm.clearcoat = Math.max(0, (pm.clearcoat ?? 0) * 0.42);
+        pm.clearcoatRoughness = Math.min(1, (pm.clearcoatRoughness ?? 0) + 0.32);
+        pm.specularIntensity = Math.max(0.15, (pm.specularIntensity ?? 1) * 0.55);
+      }
+      return pm;
     };
 
     if (Array.isArray(o.material)) {
-      o.material = o.material.map(convert);
+      o.material = o.material.map(process);
     } else {
-      o.material = convert(o.material);
+      o.material = process(o.material);
     }
   });
+
+  // Apply final body paint tint.
+  applyEtxBodyPaint(root);
 }

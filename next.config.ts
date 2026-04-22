@@ -24,6 +24,7 @@ const cspDirectives = {
     "'unsafe-eval'",
     'https://va.vercel-scripts.com',
     'https://vercel.live',
+    'https://www.gstatic.com',
   ],
   'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
   'img-src': [
@@ -39,6 +40,8 @@ const cspDirectives = {
     'https://vitals.vercel-insights.com',
     'https://va.vercel-scripts.com',
     'https://vercel.live',
+    'https://www.gstatic.com',
+    'blob:',
   ],
   'worker-src': ["'self'", 'blob:'],
   'media-src': ["'self'", 'data:', 'blob:'],
@@ -123,7 +126,7 @@ const nextConfig: NextConfig = {
         headers: securityHeaders,
       },
       {
-        source: '/:all*(webp|avif|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|otf|glb|hdr)',
+        source: '/:all*(webp|avif|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|otf|glb|bin|hdr)',
         headers: longCacheHeader,
       },
       {
