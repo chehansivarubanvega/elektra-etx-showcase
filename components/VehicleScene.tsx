@@ -136,15 +136,8 @@ export const VehicleScene = ({
 
   const isMobileRef = useRef<boolean>(false);
   useEffect(() => {
-    if (typeof globalThis.window === "undefined") return;
-    const update = () => {
-      isMobileRef.current = globalThis.window.innerWidth < 768;
-      invalidate();
-    };
-    update();
-    globalThis.window.addEventListener("resize", update, { passive: true });
-    return () => globalThis.window.removeEventListener("resize", update);
-  }, [invalidate]);
+    isMobileRef.current = lowPower;
+  }, [lowPower]);
 
   const materialsRef = useRef<AnyMaterial[]>([]);
   const lastOpacityRef = useRef<number>(-1);
@@ -196,7 +189,7 @@ export const VehicleScene = ({
     emissiveMatRefs.current = emissiveMats;
     bodyPaintMatRefs.current = bodyMats;
     bodyPaintOriginals.current = bodyOriginals;
-  });
+  }, [lowPower]); // Only re-scan if the model or power mode changes
 
   const smoothed = useRef({
     x: 0,

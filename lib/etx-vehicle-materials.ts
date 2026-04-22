@@ -120,31 +120,40 @@ export function toneDownEtxReflectionsOnObject(root: THREE.Object3D): void {
  */
 export function downgradeEtxMaterialsForMobile(root: THREE.Object3D): void {
   root.traverse((o) => {
+    // 1. Cull internal geometry that isn't visible from the outside.
+    // This saves massive amounts of VRAM and vertex processing on mobile.
+    if (o instanceof THREE.Mesh) {
+      const n = o.name.toLowerCase();
+      const isInternal = /\b(interior|seat|leather|floor|screen|steering|pedal|carpet|headrest)\b/i.test(n);
+      if (isInternal) {
+        o.visible = false;
+        o.castShadow = false;
+        o.receiveShadow = false;
+        return; // Skip material processing for hidden meshes
+      }
+    }
+
     if (!(o instanceof THREE.Mesh) || !o.material) return;
 
     const convert = (m: THREE.Material): THREE.Material => {
-      // If it's already simple, just tone down reflections.
-      if (!(m instanceof THREE.MeshPhysicalMaterial)) {
-        if (m instanceof THREE.MeshStandardMaterial) {
-          m.envMapIntensity = Math.min(m.envMapIntensity, 0.25);
-        }
-        return m;
-      }
-
-      // Convert Physical to Standard to save a fragment shader pass.
-      const prev = m;
+      const prev = m as THREE.MeshStandardMaterial;
+      
+      // Safety: Strip textures and environment maps to avoid GPU saturation.
+      // 1x1 PNGs and KTX2 placeholders can sometimes cause driver hangs.
       const next = new THREE.MeshStandardMaterial({
         color: prev.color,
-        roughness: Math.max(0.4, prev.roughness + 0.1),
-        metalness: prev.metalness * 0.8,
-        map: prev.map,
-        normalMap: prev.normalMap,
-        normalScale: prev.normalScale,
-        aoMap: prev.aoMap,
-        aoMapIntensity: prev.aoMapIntensity,
-        envMap: prev.envMap,
-        envMapIntensity: 0.2, // Very dim reflections on mobile
-        name: prev.name + "_mobile",
+        roughness: 0.9, // Matte is cheaper to calculate than glossy
+        metalness: 0,
+        flatShading: true, // Bypass normal interpolation
+        transparent: prev.transparent,
+        opacity: prev.opacity,
+        map: null,
+        normalMap: null,
+        roughnessMap: null,
+        metalnessMap: null,
+        envMap: null, // No reflections on mobile
+        envMapIntensity: 0,
+        name: prev.name + "_low",
       });
 
       // Dispose of the expensive material to free GPU memory.

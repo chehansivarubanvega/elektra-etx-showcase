@@ -33,8 +33,11 @@ export function WebGLBudgetProvider({children}: {children: React.ReactNode}) {
       const coarse = window.matchMedia("(pointer: coarse)").matches;
       const nav = navigator as Navigator & {deviceMemory?: number};
       const mem = nav.deviceMemory;
+      const ua = navigator.userAgent.toLowerCase();
+      const isMobile = /iphone|ipad|ipod|android/i.test(ua);
+      
       const low =
-        w <= 820 || coarse || (typeof mem === "number" && mem > 0 && mem < 8);
+        w <= 820 || isMobile || coarse || (typeof mem === "number" && mem > 0 && mem < 8);
       
       // Force 1.0 on mobile to avoid GPU saturation.
       // High-end desktop capped at 1.5 for performance.

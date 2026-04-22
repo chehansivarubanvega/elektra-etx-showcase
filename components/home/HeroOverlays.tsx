@@ -127,7 +127,7 @@ export function MetricsSidebar() {
   return (
     <div className="metrics-sidebar absolute inset-0 z-[35] isolate flex items-center px-6 sm:px-12 md:px-24 pointer-events-none opacity-0">
       <div className="max-w-xl pointer-events-auto">
-        <div className="relative rounded-2xl border border-white/[0.12] bg-black/80 px-6 py-8 shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_24px_80px_rgba(0,0,0,0.75)] backdrop-blur-md md:px-10 md:py-10">
+        <div className="relative rounded-2xl border border-white/[0.12] bg-black/80 px-6 py-8 shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_24px_80px_rgba(0,0,0,0.75)] md:px-10 md:py-10">
           {/* Inner gradient */}
           <div
             className="absolute inset-0 rounded-2xl bg-gradient-to-br from-black/90 via-black/70 to-transparent pointer-events-none"
@@ -180,7 +180,7 @@ export function UrbanSidebar() {
   return (
     <div className="urban-sidebar absolute inset-0 z-[35] isolate flex items-center justify-start px-6 sm:px-12 md:px-24 max-md:items-start max-md:pt-[min(14vh,104px)] pointer-events-none opacity-0">
       <div className="max-w-xl pointer-events-auto text-left">
-        <div className="relative rounded-2xl border border-white/[0.12] bg-black/80 px-6 py-8 shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_24px_80px_rgba(0,0,0,0.75)] backdrop-blur-md md:px-10 md:py-10">
+        <div className="relative rounded-2xl border border-white/[0.12] bg-black/80 px-6 py-8 shadow-[0_0_0_1px_rgba(0,0,0,0.4),0_24px_80px_rgba(0,0,0,0.75)] md:px-10 md:py-10">
           <div
             className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-black/90 via-black/70 to-transparent"
             aria-hidden

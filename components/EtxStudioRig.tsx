@@ -96,19 +96,22 @@ export function EtxStudioRig({
       <Suspense fallback={null}>
         {children}
         <Environment
-          files={ETX_STUDIO_HDR}
+          files={!lowPower ? ETX_STUDIO_HDR : undefined}
+          preset={lowPower ? "city" : undefined}
           background={false}
           environmentIntensity={envIntensity}
         />
-        <ContactShadows
-          position={[0, contactShadowY, 0]}
-          opacity={lowPower ? 0.48 : 0.55}
-          scale={contactShadowScale}
-          blur={lowPower ? 2 : 2.6}
-          far={lowPower ? 4 : 4.5}
-          resolution={contactRes}
-          color="#000000"
-        />
+        {!lowPower && (
+          <ContactShadows
+            position={[0, contactShadowY, 0]}
+            opacity={0.55}
+            scale={contactShadowScale}
+            blur={2.6}
+            far={4.5}
+            resolution={1024}
+            color="#000000"
+          />
+        )}
       </Suspense>
     </>
   );

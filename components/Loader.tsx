@@ -23,7 +23,7 @@ const POST_PROGRESS_HOLD_MS = 420;
  * Covers drei's progress stuck at 0% after LoadingManager state was clobbered
  * elsewhere — only after we know THREE saw real activity and we're not mid-decode.
  */
-const STALE_PROGRESS_SETTLE_MS = 1100;
+const STALE_PROGRESS_SETTLE_MS = 6500;
 
 const MAX_WAIT_MS = 45_000;
 
