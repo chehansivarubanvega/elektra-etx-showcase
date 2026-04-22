@@ -33,7 +33,7 @@ export function etxStudioGlProps(
     toneMapping: THREE.ACESFilmicToneMapping,
     toneMappingExposure: overrides?.toneMappingExposure ?? 0.96,
     /** iOS is stricter about lost contexts if this fails — default false in three.js */
-    failIfMajorPerformanceCaveat: isLow,
+    failIfMajorPerformanceCaveat: false,
     ...overrides,
   };
 }

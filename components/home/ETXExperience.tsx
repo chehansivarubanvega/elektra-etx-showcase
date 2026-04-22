@@ -98,7 +98,7 @@ export function ETXExperience() {
         antialias,
         powerPreference: lowPower ? "low-power" : "high-performance",
         precision: lowPower ? "lowp" : "highp",
-        failIfMajorPerformanceCaveat: lowPower,
+        failIfMajorPerformanceCaveat: false,
       }),
     [antialias, lowPower]
   );

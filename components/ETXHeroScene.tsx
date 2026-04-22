@@ -160,7 +160,7 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
         antialias,
         powerPreference: lowPower ? "low-power" : "high-performance",
         precision: lowPower ? "lowp" : "highp",
-        failIfMajorPerformanceCaveat: lowPower,
+        failIfMajorPerformanceCaveat: false,
         toneMappingExposure: lowPower ? 1.05 : 0.96,
       }),
     [antialias, lowPower],
