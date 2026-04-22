@@ -16,10 +16,10 @@ export class CanvasErrorBoundary extends Component<
   { children: React.ReactNode; className?: string },
   EBState
 > {
-  state: EBState = { hasError: false };
-
-  static getDerivedStateFromError(): EBState {
-    return { hasError: true };
+  state: EBState & { error?: string } = { hasError: false };
+  
+  static getDerivedStateFromError(error: Error): EBState & { error?: string } {
+    return { hasError: true, error: error.message };
   }
 
   componentDidCatch(error: Error) {
@@ -32,11 +32,16 @@ export class CanvasErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div
-          className={`flex items-center justify-center bg-black ${this.props.className ?? "h-full w-full"}`}
+          className={`flex flex-col items-center justify-center bg-black gap-4 p-8 text-center ${this.props.className ?? "h-full w-full"}`}
         >
           <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/30">
             3D view unavailable
           </p>
+          {this.state.error && (
+            <p className="font-mono text-[9px] text-white/20 max-w-xs break-words">
+              Error: {this.state.error}
+            </p>
+          )}
         </div>
       );
     }

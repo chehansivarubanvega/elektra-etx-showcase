@@ -97,7 +97,7 @@ export function ETXExperience() {
       etxStudioGlProps({
         antialias,
         powerPreference: lowPower ? "low-power" : "high-performance",
-        precision: lowPower ? "lowp" : "highp",
+        precision: lowPower ? "mediump" : "highp",
         failIfMajorPerformanceCaveat: false,
       }),
     [antialias, lowPower]

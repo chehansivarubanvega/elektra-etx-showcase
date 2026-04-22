@@ -159,7 +159,7 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
       etxStudioGlProps({
         antialias,
         powerPreference: lowPower ? "low-power" : "high-performance",
-        precision: lowPower ? "lowp" : "highp",
+        precision: lowPower ? "mediump" : "highp",
         failIfMajorPerformanceCaveat: false,
         toneMappingExposure: lowPower ? 1.05 : 0.96,
       }),

@@ -26,7 +26,7 @@ export function etxStudioGlProps(
   return {
     antialias: isLow ? false : (overrides?.antialias ?? true),
     powerPreference: (overrides?.powerPreference ?? "high-performance") as any,
-    precision: isLow ? "lowp" : (overrides?.precision ?? "highp"),
+    precision: isLow ? "mediump" : (overrides?.precision ?? "highp"),
     alpha: true,
     stencil: false,
     depth: true,
