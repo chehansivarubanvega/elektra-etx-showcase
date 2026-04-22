@@ -106,21 +106,7 @@ function ContactModel({pointerRef, pulseStateRef, framing, lowPower}: ModelProps
     return {cloned: clone, emissiveMaterials: mats};
   }, [scene, framing, lowPower]);
 
-  // Explicit disposal to prevent WebGL memory leaks
-  useEffect(() => {
-    return () => {
-      cloned.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
-        }
-      });
-    };
-  }, [cloned]);
+
 
   const emissiveMatsRef = useRef<
     (THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial)[]

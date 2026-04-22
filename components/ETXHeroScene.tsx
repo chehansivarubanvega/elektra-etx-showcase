@@ -58,17 +58,7 @@ function ETXModel({pointerRef, lowPower}: ModelProps & {lowPower?: boolean}) {
     return clone;
   }, [scene, lowPower]);
 
-  useEffect(() => {
-    return () => {
-      cloned.traverse((o) => {
-        if (o instanceof THREE.Mesh) {
-          o.geometry.dispose();
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach((m) => m?.dispose());
-        }
-      });
-    };
-  }, [cloned]);
+
 
   const groupRef = useRef<THREE.Group>(null);
   const tiltRef = useRef<THREE.Group>(null);

@@ -94,11 +94,13 @@ export function EtxStudioRig({
       )}
       <Suspense fallback={null}>
         {children}
-        <Environment
-          files={ETX_STUDIO_HDR}
-          background={false}
-          environmentIntensity={envIntensity}
-        />
+        {!lowPower && (
+          <Environment
+            files={ETX_STUDIO_HDR}
+            background={false}
+            environmentIntensity={envIntensity}
+          />
+        )}
         {!lowPower && (
           <ContactShadows
             position={[0, contactShadowY, 0]}

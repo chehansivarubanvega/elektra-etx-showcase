@@ -110,7 +110,6 @@ export function optimizeVehicle(root: THREE.Object3D, lowPower: boolean): void {
           opacity: m.opacity,
           name: m.name + "_low",
         });
-        m.dispose();
         return next;
       }
 

@@ -54,21 +54,7 @@ export const VehicleModel = React.forwardRef<
     return clone;
   }, [scene, lowPower]);
 
-  // Aggressive disposal of GPU assets on unmount to prevent memory leaks on mobile
-  useEffect(() => {
-    return () => {
-      clonedScene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
-        }
-      });
-    };
-  }, [clonedScene]);
+
 
   return (
     <group ref={ref} {...rest}>

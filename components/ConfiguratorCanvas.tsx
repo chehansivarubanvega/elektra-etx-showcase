@@ -120,21 +120,7 @@ function ETXModel({
     return clone;
   }, [scene, ghosted, lowPower]);
 
-  // Aggressive disposal to prevent WebGL memory saturation on mobile
-  useEffect(() => {
-    return () => {
-      cloned.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.geometry.dispose();
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
-        }
-      });
-    };
-  }, [cloned]);
+
 
   const bodyMatsRef = useRef<BodyMatRecord[]>([]);
   const allMatsRef = useRef<THREE.Material[]>([]);
