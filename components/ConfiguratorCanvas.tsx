@@ -18,17 +18,14 @@
  * HUD owns all state — the Canvas only reads it).
  */
 
-import React, {
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-} from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {Canvas, useFrame, useThree} from "@react-three/fiber";
-import {ContactShadows, Environment, useGLTF} from "@react-three/drei";
+import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
+import {toneDownEtxReflections} from "@/lib/etx-vehicle-materials";
+import {EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps} from "./EtxStudioRig";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
 const MAX_FLEET = 5;
@@ -99,9 +96,15 @@ function ETXModel({state, ghosted = false, ghostOpacity = 0.18}: ETXModelProps) 
       mesh.receiveShadow = !ghosted;
       mesh.frustumCulled = true;
       if (Array.isArray(mesh.material)) {
-        mesh.material = mesh.material.map((m) => m.clone());
+        mesh.material = mesh.material.map((m) => {
+          const c = m.clone();
+          toneDownEtxReflections(c);
+          return c;
+        });
       } else if (mesh.material) {
-        mesh.material = (mesh.material as THREE.Material).clone();
+        const c = (mesh.material as THREE.Material).clone();
+        toneDownEtxReflections(c);
+        mesh.material = c;
       }
     });
 
@@ -390,51 +393,19 @@ export const ConfiguratorCanvas = ({
 }: ConfiguratorCanvasProps) => {
   return (
     <Canvas
-      dpr={[1, 1.8]}
+      dpr={ETX_STUDIO_DPR}
       shadows
       camera={{position: FOCUS_CAMERA.idle.pos, fov: FOCUS_CAMERA.idle.fov}}
-      gl={{
-        antialias: true,
-        powerPreference: "high-performance",
-        alpha: true,
-        toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 1.05,
-      }}
+      gl={etxStudioGlProps()}
       onPointerOver={() => onCanvasPointer?.(true)}
       onPointerOut={() => onCanvasPointer?.(false)}
     >
       <color attach="background" args={["#000000"]} />
 
-      {/* Studio key/fill/rim — keeps the void cinematic, not flat. */}
-      <ambientLight intensity={0.35} />
-      <directionalLight
-        position={[5.5, 7.5, 6]}
-        intensity={2.2}
-        color={"#fff1e0"}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-bias={-0.0002}
-      />
-      <directionalLight position={[-7, 5, -3]} intensity={0.85} color={"#7fa8ff"} />
-      <directionalLight position={[0, 4, -8]} intensity={1.1} color={"#FF5722"} />
-
-      <Suspense fallback={null}>
-        <Environment files="/hdr/studio_small_03_1k.hdr" />
-
+      <EtxStudioRig contactShadowY={-1.45} contactShadowScale={18}>
         <GhostFleet state={state} />
         <ETXModel state={state} />
-
-        <ContactShadows
-          position={[0, -1.45, 0]}
-          opacity={0.55}
-          scale={18}
-          blur={2.6}
-          far={4.5}
-          resolution={1024}
-          color={"#000000"}
-        />
-      </Suspense>
+      </EtxStudioRig>
 
       <LightSpeedField launching={state.launching} />
       <CameraDirector focus={state.focus} />

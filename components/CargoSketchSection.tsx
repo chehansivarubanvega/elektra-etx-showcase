@@ -1,6 +1,5 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValueEvent,
@@ -8,6 +7,7 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 
 const TOTAL_FRAMES = 19;
 const LAST_FRAME = TOTAL_FRAMES - 1;
@@ -273,7 +273,10 @@ const CargoSketchSection = () => {
         applySize(w, h, nextDpr);
         // Immediately redraw after resize so buffer is never blank.
         const v = smoothFrame.get();
-        const idx = Math.min(LAST_FRAME, Math.max(0, Math.round(v * LAST_FRAME)));
+        const idx = Math.min(
+          LAST_FRAME,
+          Math.max(0, Math.round(v * LAST_FRAME)),
+        );
         draw(idx);
       }, 200);
     };

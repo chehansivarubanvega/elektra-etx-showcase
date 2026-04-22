@@ -5,6 +5,10 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { ETX_EXTERIOR_GLB } from "@/lib/site-assets";
+import {
+  applyEtxBodyPaint,
+  toneDownEtxReflections,
+} from "@/lib/etx-vehicle-materials";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
 const BASE_Y_ROTATION = Math.PI;
@@ -29,13 +33,16 @@ export const VehicleModel = React.forwardRef<
             child.material = child.material.map((m) => {
               const cloned = m.clone() as AnyMaterial;
               cloned.transparent = true;
+              toneDownEtxReflections(cloned);
               return cloned;
             });
           } else {
-            child.material = (
+            const mat = (
               child.material as AnyMaterial
             ).clone() as AnyMaterial;
-            (child.material as AnyMaterial).transparent = true;
+            mat.transparent = true;
+            toneDownEtxReflections(mat);
+            child.material = mat;
           }
         }
       }
@@ -56,6 +63,7 @@ export const VehicleModel = React.forwardRef<
     centeredBox.getCenter(center);
     clone.position.sub(center);
 
+    applyEtxBodyPaint(clone);
     return clone;
   }, [scene]);
 

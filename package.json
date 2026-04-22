@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "clean": "next clean"
+    "clean": "next clean",
+    "model:export-gltf": "gltf-transform png public/models/optimized.glb public/models/.etx-build-tmp.glb --formats '*' --effort 5 -v && gltf-transform copy public/models/.etx-build-tmp.glb public/models/etx-exterior-panels/etx.gltf -v && cp public/models/.etx-build-tmp.glb public/models/optimized.glb && rm -f public/models/.etx-build-tmp.glb"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -27,6 +28,7 @@
     "three": "^0.183.2"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.3.0",
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^20",
     "@types/react": "^19",

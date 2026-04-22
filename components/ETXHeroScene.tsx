@@ -1,10 +1,15 @@
 "use client";
 
-import React, {Suspense, useMemo, useRef, useState, useEffect, useCallback} from "react";
+import React, {useMemo, useRef, useState, useEffect, useCallback} from "react";
 import {Canvas, useFrame} from "@react-three/fiber";
-import {ContactShadows, Environment, useGLTF} from "@react-three/drei";
+import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
+import {
+  applyEtxBodyPaint,
+  toneDownEtxReflectionsOnObject,
+} from "@/lib/etx-vehicle-materials";
+import {EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps} from "./EtxStudioRig";
 import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
@@ -53,6 +58,8 @@ function ETXModel({pointerRef}: ModelProps) {
     centered.getCenter(center);
     clone.position.sub(center);
 
+    toneDownEtxReflectionsOnObject(clone);
+    applyEtxBodyPaint(clone);
     return clone;
   }, [scene]);
 
@@ -159,54 +166,15 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
         {visible && (
           <Canvas
             key={contextKey}
-            dpr={[1, 1.8]}
+            dpr={ETX_STUDIO_DPR}
             shadows
             camera={{position: [0, 0.4, 11], fov: 30}}
-            gl={{
-              antialias: true,
-              powerPreference: "high-performance",
-              alpha: true,
-              toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 1.05,
-            }}
+            gl={etxStudioGlProps()}
             onCreated={onCreated}
           >
-            {/* Ambient base — keeps shadow side from crushing to pure black. */}
-            <ambientLight intensity={0.35} />
-
-            {/* Key light — warm, slightly above-camera, casts the contact shadow. */}
-            <directionalLight
-              position={[5.5, 7.5, 6]}
-              intensity={2.4}
-              color={"#fff1e0"}
-              castShadow
-              shadow-mapSize-width={2048}
-              shadow-mapSize-height={2048}
-              shadow-bias={-0.0002}
-            />
-
-            {/* Cool fill — opposite side, simulates studio bounce on the far panel. */}
-            <directionalLight position={[-7, 5, -3]} intensity={0.9} color={"#7fa8ff"} />
-
-            {/* Rim — picks the silhouette out of the pure-black background. */}
-            <directionalLight position={[0, 4, -8]} intensity={1.2} color={"#ffffff"} />
-
-            <Suspense fallback={null}>
+            <EtxStudioRig>
               <ETXModel pointerRef={pointerRef} />
-              {/* Self-hosted HDR (mirror of drei's `studio` preset). Hosting it
-                  ourselves keeps CSP `connect-src` locked to `'self'` and avoids
-                  depending on githack/jsDelivr in production. */}
-              <Environment files="/hdr/studio_small_03_1k.hdr" />
-              <ContactShadows
-                position={[0, -2.55, 0]}
-                opacity={0.55}
-                scale={16}
-                blur={2.6}
-                far={4.5}
-                resolution={1024}
-                color={"#000000"}
-              />
-            </Suspense>
+            </EtxStudioRig>
           </Canvas>
         )}
       </CanvasErrorBoundary>

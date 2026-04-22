@@ -1,10 +1,12 @@
 "use client";
 
-import React, {Suspense, useEffect, useImperativeHandle, useMemo, useRef} from "react";
+import React, {useEffect, useImperativeHandle, useMemo, useRef} from "react";
 import {Canvas, useFrame} from "@react-three/fiber";
-import {ContactShadows, Environment, useGLTF} from "@react-three/drei";
+import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
+import {toneDownEtxReflections} from "@/lib/etx-vehicle-materials";
+import {EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps} from "./EtxStudioRig";
 
 const MODEL_PATH = ETX_EXTERIOR_GLB;
 
@@ -73,6 +75,7 @@ function ContactModel({pointerRef, pulseStateRef, framing}: ModelProps) {
        */
       const wrap = (m: THREE.Material): THREE.Material => {
         const c = m.clone();
+        toneDownEtxReflections(c);
         if (
           c instanceof THREE.MeshStandardMaterial ||
           c instanceof THREE.MeshPhysicalMaterial
@@ -262,46 +265,17 @@ export const ContactScene = ({pointerRef, handleRef, framing = "desktop"}: Scene
 
   return (
     <Canvas
-      dpr={[1, 1.8]}
+      dpr={ETX_STUDIO_DPR}
       shadows
       camera={cameraConfig}
-      gl={{
-        antialias: true,
-        powerPreference: "high-performance",
-        alpha: true,
-        toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: framing === "mobile" ? 1.12 : 1.05,
-      }}
+      gl={etxStudioGlProps({
+        toneMappingExposure: framing === "mobile" ? 1.02 : 0.96,
+      })}
     >
-      <ambientLight intensity={framing === "mobile" ? 0.45 : 0.32} />
-      <directionalLight
-        position={[5.5, 7.5, 6]}
-        intensity={2.2}
-        color={"#fff1e0"}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-bias={-0.0002}
-      />
-      <directionalLight position={[-7, 5, -3]} intensity={0.85} color={"#7fa8ff"} />
-      <directionalLight position={[0, 4, -8]} intensity={1.1} color={"#ffffff"} />
-      {/* Warm orange rim from the cursor side — ties together the emissive look. */}
-      <pointLight position={[3, 1.4, 4]} intensity={1.4} color={"#FF5722"} distance={14} decay={1.6} />
-
-      <Suspense fallback={null}>
+      <EtxStudioRig contactShadowY={-2.5}>
         <PulseBridge handleRef={handleRef} pulseStateRef={pulseStateRef} />
         <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} framing={framing} />
-        <Environment files="/hdr/studio_small_03_1k.hdr" />
-        <ContactShadows
-          position={[0, -2.5, 0]}
-          opacity={0.55}
-          scale={16}
-          blur={2.6}
-          far={4.5}
-          resolution={1024}
-          color={"#000000"}
-        />
-      </Suspense>
+      </EtxStudioRig>
     </Canvas>
   );
 };

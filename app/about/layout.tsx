@@ -1,5 +1,5 @@
-import type {Metadata} from "next";
-import {Inter_Tight, Cormorant_Garamond} from "next/font/google";
+import type { Metadata } from "next";
+import { Cormorant_Garamond, Inter_Tight } from "next/font/google";
 import React from "react";
 
 /** Massive condensed display for the ABOUT mega-word + brutalist headlines. */
@@ -23,8 +23,10 @@ export const metadata: Metadata = {
     "Where sustainable mobility meets innovation. Born in Colombo, engineered for the next decade — Elektrateq is a venture of Vega Innovations.",
 };
 
-export default function AboutLayout(props: Readonly<{children: React.ReactNode}>) {
-  const {children} = props;
+export default function AboutLayout(
+  props: Readonly<{ children: React.ReactNode }>,
+) {
+  const { children } = props;
   return (
     <div
       className={`${aboutDisplay.variable} ${aboutSerif.variable} relative min-h-[100dvh] bg-[#000000] text-white antialiased selection:bg-[#FF5722] selection:text-white`}

@@ -2,12 +2,13 @@
 
 import React, { Suspense, useRef, useState, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { ContactShadows, OrbitControls, Html, useProgress } from '@react-three/drei';
+import { OrbitControls, Html, useProgress } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import gsap from 'gsap';
 import { Loader2 } from 'lucide-react';
 import { VehicleModel } from './VehicleScene';
 import { CanvasErrorBoundary } from './CanvasErrorBoundary';
+import { EtxStudioRig, ETX_STUDIO_DPR, etxStudioGlProps } from './EtxStudioRig';
 
 const CanvasLoader = () => {
   const { progress } = useProgress();
@@ -177,10 +178,10 @@ const InteractiveStudio = () => {
           <div className={`absolute inset-0 ${canvasPointerClass}`}>
             <CanvasErrorBoundary>
               <Canvas
-                shadows={false}
-                dpr={[1, 1.5]}
+                shadows
+                dpr={ETX_STUDIO_DPR}
                 frameloop={orbitEnabled ? 'always' : 'demand'}
-                gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
+                gl={etxStudioGlProps()}
                 camera={{ position: [8, 4, 8], fov: 35 }}
                 performance={{ min: 0.5 }}
                 className={
@@ -191,20 +192,9 @@ const InteractiveStudio = () => {
               >
                 <CanvasPointerHitTarget interactable={orbitEnabled} />
                 <Suspense fallback={<CanvasLoader />}>
-                  <ambientLight intensity={1.2} />
-                  <directionalLight position={[8, 10, 6]} intensity={1.4} />
-                  <directionalLight position={[-6, 4, -4]} intensity={0.5} color={0x99bbff} />
-
-                  <VehicleModel position={[0, 1.5, 0]} rotation={[0, Math.PI, 0]} />
-
-                  <ContactShadows
-                    position={[0, 0, 0]}
-                    opacity={0.45}
-                    blur={2.5}
-                    far={1.5}
-                    resolution={256}
-                    color="#000000"
-                  />
+                  <EtxStudioRig>
+                    <VehicleModel position={[0, 0.5, 0]} rotation={[0, Math.PI, 0]} />
+                  </EtxStudioRig>
 
                   {orbitEnabled ? (
                     <>

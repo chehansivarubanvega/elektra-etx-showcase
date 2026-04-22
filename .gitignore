@@ -1,4 +1,5 @@
 node_modules/
+public/models/.etx-build-tmp.glb
 .next/
 out/
 build/
