@@ -95,8 +95,7 @@ export function EtxStudioRig({
       <Suspense fallback={null}>
         {children}
         <Environment
-          files={!lowPower ? ETX_STUDIO_HDR : undefined}
-          preset={lowPower ? "city" : undefined}
+          files={ETX_STUDIO_HDR}
           background={false}
           environmentIntensity={envIntensity}
         />

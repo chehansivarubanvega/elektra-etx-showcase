@@ -41,6 +41,8 @@ const cspDirectives = {
     'https://va.vercel-scripts.com',
     'https://vercel.live',
     'https://www.gstatic.com',
+    'https://raw.githack.com',
+    'https://cdn.jsdelivr.net',
     'blob:',
   ],
   'worker-src': ["'self'", 'blob:'],
