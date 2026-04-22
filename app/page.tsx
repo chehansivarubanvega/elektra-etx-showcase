@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
+import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
@@ -300,15 +302,29 @@ export default function Home() {
           <CanvasErrorBoundary>
             <Canvas
               dpr={[1, 1.5]}
-              gl={{ antialias: false, powerPreference: 'high-performance', stencil: false, depth: true, alpha: true }}
+              gl={{
+                antialias: false,
+                powerPreference: 'high-performance',
+                stencil: false,
+                depth: true,
+                alpha: true,
+                toneMapping: THREE.ACESFilmicToneMapping,
+                toneMappingExposure: 1.05,
+              }}
               camera={{ position: [0, 0, 15], fov: 30 }}
               shadows={false}
               performance={{ min: 0.5 }}
             >
-              <ambientLight intensity={1.4} />
-              <directionalLight position={[6, 10, 6]} intensity={1.6} />
-              <directionalLight position={[-8, 6, -4]} intensity={0.55} color={0x99bbff} />
+              {/* IBL: PBR GLB needs env lighting — direct lights alone read flat/dark. */}
+              <ambientLight intensity={0.38} />
+              <directionalLight position={[5.5, 7.5, 6]} intensity={2.2} color="#fff1e0" />
+              <directionalLight position={[-7, 5, -3]} intensity={0.9} color="#7fa8ff" />
+              <directionalLight position={[0, 4, -8]} intensity={1.15} color="#ffffff" />
               <Suspense fallback={null}>
+                <Environment
+                  files="/hdr/studio_small_03_1k.hdr"
+                  background={false}
+                />
                 <VehicleScene scrollData={scrollData} />
               </Suspense>
             </Canvas>

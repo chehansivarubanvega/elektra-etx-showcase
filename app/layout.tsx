@@ -27,7 +27,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           rel="preload"
           href={ETX_EXTERIOR_GLB}
           as="fetch"
-          type="model/gltf-binary"
+          type="model/gltf+json"
           crossOrigin="anonymous"
         />
       </head>

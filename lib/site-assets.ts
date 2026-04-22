@@ -1,5 +1,6 @@
 /** Single source of truth for shared static assets (3D + hero scroll). */
-export const ETX_EXTERIOR_GLB = "/models/etx-exterior-panels.glb";
+export const ETX_EXTERIOR_GLB =
+  "/models/etx-exterior-panels/etx.gltf";
 
 export const HERO_SCROLL_BG_IMAGES = [
   "/images/sigiriya.png",
