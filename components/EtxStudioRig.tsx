@@ -18,16 +18,23 @@ export function etxStudioGlProps(
     toneMappingExposure: number;
     powerPreference: "default" | "high-performance" | "low-power";
     dpr: number;
+    precision: "lowp" | "mediump" | "highp";
+    failIfMajorPerformanceCaveat: boolean;
+    alpha: boolean;
   }> & { stencil?: boolean; depth?: boolean },
 ) {
+  const isLow = overrides?.powerPreference === "low-power";
   return {
-    antialias: true,
-    powerPreference: "high-performance" as const,
+    antialias: isLow ? false : (overrides?.antialias ?? true),
+    powerPreference: (overrides?.powerPreference ?? "high-performance") as any,
+    precision: isLow ? "lowp" : (overrides?.precision ?? "highp"),
     alpha: true,
+    stencil: false,
+    depth: true,
     toneMapping: THREE.ACESFilmicToneMapping,
-    toneMappingExposure: 0.96,
+    toneMappingExposure: overrides?.toneMappingExposure ?? 0.96,
     /** iOS is stricter about lost contexts if this fails — default false in three.js */
-    failIfMajorPerformanceCaveat: false,
+    failIfMajorPerformanceCaveat: isLow,
     ...overrides,
   };
 }

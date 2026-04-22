@@ -12,7 +12,7 @@ export type WebGLBudget = {
 
 const DEFAULT_BUDGET: WebGLBudget = {
   lowPower: true,
-  dpr: [1, 1.2],
+  dpr: [1, 1],
   antialias: false,
 };
 
@@ -34,12 +34,15 @@ export function WebGLBudgetProvider({children}: {children: React.ReactNode}) {
       const nav = navigator as Navigator & {deviceMemory?: number};
       const mem = nav.deviceMemory;
       const low =
-        w <= 768 || coarse || (typeof mem === "number" && mem > 0 && mem <= 4);
-      const pr = Math.min(window.devicePixelRatio || 1, low ? 1.3 : 2);
-      const maxDpr = low ? 1.28 : 1.8;
+        w <= 820 || coarse || (typeof mem === "number" && mem > 0 && mem < 8);
+      
+      // Force 1.0 on mobile to avoid GPU saturation.
+      // High-end desktop capped at 1.5 for performance.
+      const maxDpr = low ? 1.0 : 1.5;
+      
       setBudget({
         lowPower: low,
-        dpr: [1, Math.min(maxDpr, pr)] as [number, number],
+        dpr: [1, maxDpr] as [number, number],
         antialias: !low,
       });
     };

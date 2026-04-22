@@ -112,3 +112,50 @@ export function toneDownEtxReflectionsOnObject(root: THREE.Object3D): void {
     }
   });
 }
+
+/**
+ * Aggressive material stripping for low-end mobile.
+ * Converts expensive MeshPhysicalMaterial to MeshStandardMaterial and
+ * removes high-overhead features like clearcoat, sheen, and transmission.
+ */
+export function downgradeEtxMaterialsForMobile(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    if (!(o instanceof THREE.Mesh) || !o.material) return;
+
+    const convert = (m: THREE.Material): THREE.Material => {
+      // If it's already simple, just tone down reflections.
+      if (!(m instanceof THREE.MeshPhysicalMaterial)) {
+        if (m instanceof THREE.MeshStandardMaterial) {
+          m.envMapIntensity = Math.min(m.envMapIntensity, 0.25);
+        }
+        return m;
+      }
+
+      // Convert Physical to Standard to save a fragment shader pass.
+      const prev = m;
+      const next = new THREE.MeshStandardMaterial({
+        color: prev.color,
+        roughness: Math.max(0.4, prev.roughness + 0.1),
+        metalness: prev.metalness * 0.8,
+        map: prev.map,
+        normalMap: prev.normalMap,
+        normalScale: prev.normalScale,
+        aoMap: prev.aoMap,
+        aoMapIntensity: prev.aoMapIntensity,
+        envMap: prev.envMap,
+        envMapIntensity: 0.2, // Very dim reflections on mobile
+        name: prev.name + "_mobile",
+      });
+
+      // Dispose of the expensive material to free GPU memory.
+      prev.dispose();
+      return next;
+    };
+
+    if (Array.isArray(o.material)) {
+      o.material = o.material.map(convert);
+    } else {
+      o.material = convert(o.material);
+    }
+  });
+}

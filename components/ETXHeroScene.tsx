@@ -11,6 +11,7 @@ import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
 import {
   applyEtxBodyPaint,
+  downgradeEtxMaterialsForMobile,
   toneDownEtxReflectionsOnObject,
 } from "@/lib/etx-vehicle-materials";
 import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
@@ -35,7 +36,7 @@ type ModelProps = Readonly<{
   pointerRef: PointerRef;
 }>;
 
-function ETXModel({pointerRef}: ModelProps) {
+function ETXModel({pointerRef, lowPower}: ModelProps & {lowPower?: boolean}) {
   const {scene} = useGLTF(MODEL_PATH);
 
   /** Clone + center + uniformly scale so the model fills a consistent viewport box. */
@@ -62,10 +63,14 @@ function ETXModel({pointerRef}: ModelProps) {
     centered.getCenter(center);
     clone.position.sub(center);
 
-    toneDownEtxReflectionsOnObject(clone);
+    if (lowPower) {
+      downgradeEtxMaterialsForMobile(clone);
+    } else {
+      toneDownEtxReflectionsOnObject(clone);
+    }
     applyEtxBodyPaint(clone);
     return clone;
-  }, [scene]);
+  }, [scene, lowPower]);
 
   const groupRef = useRef<THREE.Group>(null);
   const tiltRef = useRef<THREE.Group>(null);
@@ -155,7 +160,10 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
     () =>
       etxStudioGlProps({
         antialias,
-        powerPreference: lowPower ? "default" : "high-performance",
+        powerPreference: lowPower ? "low-power" : "high-performance",
+        precision: lowPower ? "lowp" : "highp",
+        failIfMajorPerformanceCaveat: lowPower,
+        toneMappingExposure: lowPower ? 1.05 : 0.96,
       }),
     [antialias, lowPower],
   );
@@ -200,7 +208,7 @@ export const ETXHeroScene = ({pointerRef}: SceneProps) => {
           >
             <WebGLContextRecovery onRestored={bumpContext} />
             <EtxStudioRig>
-              <ETXModel pointerRef={pointerRef} />
+              <ETXModel pointerRef={pointerRef} lowPower={lowPower} />
             </EtxStudioRig>
           </Canvas>
         )}

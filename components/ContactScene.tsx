@@ -11,7 +11,10 @@ import {Canvas, useFrame} from "@react-three/fiber";
 import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
-import {toneDownEtxReflections} from "@/lib/etx-vehicle-materials";
+import {
+  toneDownEtxReflections,
+  downgradeEtxMaterialsForMobile,
+} from "@/lib/etx-vehicle-materials";
 import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
 import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
 import {
@@ -53,6 +56,7 @@ type ModelProps = Readonly<{
   /** Bridges the imperative pulse signal into the per-frame loop without rerenders. */
   pulseStateRef: React.MutableRefObject<{t: number; firing: boolean}>;
   framing: Framing;
+  lowPower?: boolean;
 }>;
 
 /**
@@ -61,7 +65,7 @@ type ModelProps = Readonly<{
  * — Pointer X → very subtle yaw parallax for liveness.
  * — Emissive intensity tracks pointer Y plus a transient "pulse" envelope.
  */
-function ContactModel({pointerRef, pulseStateRef, framing}: ModelProps) {
+function ContactModel({pointerRef, pulseStateRef, framing, lowPower}: ModelProps) {
   const {scene} = useGLTF(MODEL_PATH);
 
   /** Clone, normalize, capture all materials so we can drive emissive globally.
@@ -120,8 +124,28 @@ function ContactModel({pointerRef, pulseStateRef, framing}: ModelProps) {
     centered.getCenter(center);
     clone.position.sub(center);
 
+    if (lowPower) {
+      downgradeEtxMaterialsForMobile(clone);
+    }
+
     return {cloned: clone, emissiveMaterials: mats};
-  }, [scene, framing]);
+  }, [scene, framing, lowPower]);
+
+  // Explicit disposal to prevent WebGL memory leaks
+  useEffect(() => {
+    return () => {
+      cloned.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+    };
+  }, [cloned]);
 
   const emissiveMatsRef = useRef<
     (THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial)[]
@@ -268,7 +292,8 @@ export const ContactScene = ({pointerRef, handleRef, framing = "desktop"}: Scene
       etxStudioGlProps({
         antialias,
         toneMappingExposure: framing === "mobile" ? 1.02 : 0.96,
-        powerPreference: lowPower ? "default" : "high-performance",
+        powerPreference: lowPower ? "low-power" : "high-performance",
+        precision: lowPower ? "lowp" : "highp",
       }),
     [antialias, framing, lowPower],
   );
@@ -309,7 +334,12 @@ export const ContactScene = ({pointerRef, handleRef, framing = "desktop"}: Scene
         >
           <EtxStudioRig contactShadowY={-2.5}>
             <PulseBridge handleRef={handleRef} pulseStateRef={pulseStateRef} />
-            <ContactModel pointerRef={pointerRef} pulseStateRef={pulseStateRef} framing={framing} />
+            <ContactModel
+              pointerRef={pointerRef}
+              pulseStateRef={pulseStateRef}
+              framing={framing}
+              lowPower={lowPower}
+            />
           </EtxStudioRig>
         </Canvas>
       </CanvasErrorBoundary>

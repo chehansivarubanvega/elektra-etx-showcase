@@ -8,6 +8,7 @@ import { ETX_EXTERIOR_GLB } from "@/lib/site-assets";
 import {
   applyEtxBodyPaint,
   toneDownEtxReflections,
+  downgradeEtxMaterialsForMobile,
 } from "@/lib/etx-vehicle-materials";
 import type { ScrollData } from "@/types/scroll-data";
 
@@ -27,36 +28,45 @@ const BODY_PAINT_MAT_NAME = /^Body Paint$/i;
 
 export const VehicleModel = React.forwardRef<
   THREE.Group,
-  React.ComponentPropsWithoutRef<"group">
+  React.ComponentPropsWithoutRef<"group"> & { lowPower?: boolean }
 >((props, ref) => {
+  const { lowPower, ...rest } = props;
   const { scene } = useGLTF(MODEL_PATH);
 
   const clonedScene = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
+        child.castShadow = !lowPower;
+        child.receiveShadow = !lowPower;
         child.frustumCulled = true;
         if (child.material) {
           if (Array.isArray(child.material)) {
             child.material = child.material.map((m) => {
               const cloned = m.clone() as AnyMaterial;
               cloned.transparent = true;
+              if (lowPower) {
+                cloned.precision = "lowp";
+              }
               toneDownEtxReflections(cloned);
               return cloned;
             });
           } else {
-            const mat = (
-              child.material as AnyMaterial
-            ).clone() as AnyMaterial;
+            const mat = (child.material as AnyMaterial).clone() as AnyMaterial;
             mat.transparent = true;
+            if (lowPower) {
+              mat.precision = "lowp";
+            }
             toneDownEtxReflections(mat);
             child.material = mat;
           }
         }
       }
     });
+
+    if (lowPower) {
+      downgradeEtxMaterialsForMobile(clone);
+    }
 
     const box = new THREE.Box3().setFromObject(clone);
     const size = new THREE.Vector3();
@@ -75,10 +85,26 @@ export const VehicleModel = React.forwardRef<
 
     applyEtxBodyPaint(clone);
     return clone;
-  }, [scene]);
+  }, [scene, lowPower]);
+
+  // Aggressive disposal of GPU assets on unmount to prevent memory leaks on mobile
+  useEffect(() => {
+    return () => {
+      clonedScene.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+    };
+  }, [clonedScene]);
 
   return (
-    <group ref={ref} {...props}>
+    <group ref={ref} {...rest}>
       <primitive object={clonedScene} />
     </group>
   );
@@ -519,7 +545,7 @@ export const VehicleScene = ({
 
   return (
     <group ref={groupRef}>
-      <VehicleModel ref={vehicleRef} />
+      <VehicleModel ref={vehicleRef} lowPower={lowPower} />
     </group>
   );
 };

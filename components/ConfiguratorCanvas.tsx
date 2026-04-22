@@ -28,7 +28,10 @@ import {useGLTF} from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
 import {ETX_EXTERIOR_GLB} from "@/lib/site-assets";
-import {toneDownEtxReflections} from "@/lib/etx-vehicle-materials";
+import {
+  toneDownEtxReflections,
+  downgradeEtxMaterialsForMobile,
+} from "@/lib/etx-vehicle-materials";
 import {CanvasErrorBoundary} from "./CanvasErrorBoundary";
 import {EtxStudioRig, etxStudioGlProps} from "./EtxStudioRig";
 
@@ -85,9 +88,15 @@ type ETXModelProps = Readonly<{
   state: ConfiguratorState;
   ghosted?: boolean;
   ghostOpacity?: number;
+  lowPower?: boolean;
 }>;
 
-function ETXModel({state, ghosted = false, ghostOpacity = 0.18}: ETXModelProps) {
+function ETXModel({
+  state,
+  ghosted = false,
+  ghostOpacity = 0.18,
+  lowPower,
+}: ETXModelProps) {
   const {scene} = useGLTF(MODEL_PATH);
 
   // Each ETX instance gets its own deep clone with private materials so the
@@ -124,8 +133,28 @@ function ETXModel({state, ghosted = false, ghostOpacity = 0.18}: ETXModelProps) 
     const center = new THREE.Vector3();
     cb.getCenter(center);
     clone.position.sub(center);
+    if (lowPower) {
+      downgradeEtxMaterialsForMobile(clone);
+    }
+
     return clone;
-  }, [scene, ghosted]);
+  }, [scene, ghosted, lowPower]);
+
+  // Aggressive disposal to prevent WebGL memory saturation on mobile
+  useEffect(() => {
+    return () => {
+      cloned.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+    };
+  }, [cloned]);
 
   const bodyMatsRef = useRef<BodyMatRecord[]>([]);
   const allMatsRef = useRef<THREE.Material[]>([]);
@@ -351,9 +380,12 @@ const GHOST_OFFSETS: ReadonlyArray<{x: number; z: number; rot: number}> = [
   {x: 7.0, z: -3.4, rot: -0.32},
 ];
 
-function GhostFleet({state}: {state: ConfiguratorState}) {
+function GhostFleet({state, lowPower}: {state: ConfiguratorState; lowPower?: boolean}) {
   // Always render the maximum so we don't pay a re-mount cost when the user
   // dials Quantity up; we just modulate visibility per slot.
+  // DISABLED ON MOBILE/LOW-POWER: 5 vehicle instances is too much RAM.
+  if (lowPower) return null;
+
   const visibleSlots = Math.max(0, Math.min(state.quantity - 1, MAX_FLEET - 1));
   return (
     <group>
@@ -366,7 +398,7 @@ function GhostFleet({state}: {state: ConfiguratorState}) {
             rotation={[0, g.rot, 0]}
             scale={visible ? 0.85 : 0.001}
           >
-            <ETXModel state={state} ghosted ghostOpacity={visible ? 0.16 : 0} />
+            <ETXModel state={state} ghosted ghostOpacity={visible ? 0.16 : 0} lowPower={lowPower} />
           </group>
         );
       })}
@@ -401,7 +433,8 @@ export const ConfiguratorCanvas = ({
     () =>
       etxStudioGlProps({
         antialias,
-        powerPreference: lowPower ? "default" : "high-performance",
+        powerPreference: lowPower ? "low-power" : "high-performance",
+        precision: lowPower ? "lowp" : "highp",
       }),
     [antialias, lowPower],
   );
@@ -421,11 +454,9 @@ export const ConfiguratorCanvas = ({
           onPointerOut={() => onCanvasPointer?.(false)}
           style={{background: 'transparent'}}
         >
-          <color attach="background" args={["#000000"]} />
-
           <EtxStudioRig contactShadowY={-1.45} contactShadowScale={18}>
-            <GhostFleet state={state} />
-            <ETXModel state={state} />
+            <GhostFleet state={state} lowPower={lowPower} />
+            <ETXModel state={state} lowPower={lowPower} />
           </EtxStudioRig>
 
           <LightSpeedField launching={state.launching} />

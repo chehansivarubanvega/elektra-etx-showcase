@@ -31,6 +31,11 @@ import { VehicleScene } from "@/components/VehicleScene";
 import { Loader } from "@/components/Loader";
 import SnapController from "@/components/SnapController";
 import { CanvasErrorBoundary } from "@/components/CanvasErrorBoundary";
+import {
+  applyEtxBodyPaint,
+  downgradeEtxMaterialsForMobile,
+  toneDownEtxReflectionsOnObject,
+} from "@/lib/etx-vehicle-materials";
 import { scheduleHomeScrollSequencesWarmup } from "@/lib/site-assets";
 import type { ScrollData } from "@/types/scroll-data";
 import {
@@ -93,7 +98,9 @@ export function ETXExperience() {
     () =>
       etxStudioGlProps({
         antialias,
-        powerPreference: lowPower ? "default" : "high-performance",
+        powerPreference: lowPower ? "low-power" : "high-performance",
+        precision: lowPower ? "lowp" : "highp",
+        failIfMajorPerformanceCaveat: lowPower,
       }),
     [antialias, lowPower]
   );
