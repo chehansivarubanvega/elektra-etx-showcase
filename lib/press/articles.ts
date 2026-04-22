@@ -38,3 +38,20 @@ export function getNextArticles(currentSlug: string, limit = 6): PressArticle[] 
   const rotated = [...articles.slice(idx + 1), ...articles.slice(0, idx)];
   return rotated.slice(0, limit);
 }
+
+/** SSR-friendly date strings (en-LK) for press list and article pages. */
+export function formatArticleDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-LK', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export function formatArticleDateLong(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-LK', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}

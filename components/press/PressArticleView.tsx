@@ -1,50 +1,13 @@
-'use client';
-
-import React, {useCallback, useRef, useState} from 'react';
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {motion} from 'motion/react';
-import type {PressArticle} from '@/lib/press/articles';
+import {formatArticleDateLong, type PressArticle} from '@/lib/press/articles';
+import {MagneticBackLink} from './MagneticBackLink';
 
 type PressArticleViewProps = {
   article: PressArticle;
   nextArticles: PressArticle[];
 };
-
-function MagneticBackLink() {
-  const ref = useRef<HTMLAnchorElement>(null);
-  const [t, setT] = useState({x: 0, y: 0});
-
-  const onMove = useCallback((e: React.MouseEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
-    setT({
-      x: (e.clientX - cx) * 0.22,
-      y: (e.clientY - cy) * 0.22,
-    });
-  }, []);
-
-  const onLeave = useCallback(() => setT({x: 0, y: 0}), []);
-
-  return (
-    <Link
-      ref={ref}
-      href="/press"
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      style={{transform: `translate3d(${t.x}px, ${t.y}px, 0)`}}
-      className="inline-flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.35em] text-[#1A1A1A]/55 transition-colors hover:text-[#FF5722]"
-    >
-      <span className="text-[#FF5722]" aria-hidden>
-        ←
-      </span>
-      Back to Press
-    </Link>
-  );
-}
 
 function interleaveBody(article: PressArticle): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
@@ -54,27 +17,19 @@ function interleaveBody(article: PressArticle): React.ReactNode[] {
 
   paragraphs.forEach((text, i) => {
     nodes.push(
-      <motion.p
+      <p
         key={`p-${i}`}
-        initial={{opacity: 0, y: 28}}
-        whileInView={{opacity: 1, y: 0}}
-        viewport={{once: true, margin: '-12% 0px'}}
-        transition={{duration: 0.65, ease: [0.22, 1, 0.36, 1]}}
         className="text-[17px] leading-[1.75] text-[#1A1A1A]/80 md:text-[18px]"
       >
         {text}
-      </motion.p>,
+      </p>,
     );
     if (sketchAfter.includes(i) && sketches[sketchI]) {
       const sk = sketches[sketchI];
       sketchI += 1;
       nodes.push(
-        <motion.figure
-          key={`sk-${sketchI}-${sk.src}`}
-          initial={{opacity: 0, y: 32}}
-          whileInView={{opacity: 1, y: 0}}
-          viewport={{once: true, margin: '-8% 0px'}}
-          transition={{duration: 0.75, ease: [0.22, 1, 0.36, 1]}}
+        <figure
+          key={`sk-${i}-${sk.src}`}
           className="relative left-1/2 my-20 w-screen max-w-[min(100vw,1240px)] -translate-x-1/2"
         >
           <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-[#1A1A1A]/[0.04] shadow-[0_24px_80px_rgba(0,0,0,0.06)]">
@@ -95,7 +50,7 @@ function interleaveBody(article: PressArticle): React.ReactNode[] {
           <figcaption className="mt-4 px-1 text-[11px] font-medium uppercase tracking-[0.22em] text-[#1A1A1A]/45">
             {sk.caption}
           </figcaption>
-        </motion.figure>,
+        </figure>,
       );
     }
   });
@@ -103,12 +58,12 @@ function interleaveBody(article: PressArticle): React.ReactNode[] {
   return nodes;
 }
 
+/**
+ * **Server Component** — article copy, media, and “Continue reading” are in the
+ * initial HTML. Only `MagneticBackLink` is a small client island.
+ */
 export function PressArticleView({article, nextArticles}: PressArticleViewProps) {
-  const dateLabel = new Date(article.date).toLocaleDateString('en-LK', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const dateLabel = formatArticleDateLong(article.date);
 
   return (
     <article className="bg-[#FEFEFE] pb-24 pt-8 md:pb-32 md:pt-10">
@@ -127,14 +82,9 @@ export function PressArticleView({article, nextArticles}: PressArticleViewProps)
             </span>
             <span>{article.kicker}</span>
           </div>
-          <motion.h1
-            initial={{opacity: 0, y: 24}}
-            animate={{opacity: 1, y: 0}}
-            transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1]}}
-            className="text-[clamp(2.25rem,5.5vw,3.75rem)] font-bold uppercase leading-[0.98] tracking-[-0.03em] [font-family:var(--font-press-display),ui-sans-serif]"
-          >
+          <h1 className="text-[clamp(2.25rem,5.5vw,3.75rem)] font-bold uppercase leading-[0.98] tracking-[-0.03em] [font-family:var(--font-press-display),ui-sans-serif]">
             {article.title}
-          </motion.h1>
+          </h1>
         </header>
 
         <div className="mt-14 flex flex-col gap-10">{interleaveBody(article)}</div>
@@ -176,7 +126,9 @@ export function PressArticleView({article, nextArticles}: PressArticleViewProps)
               <p className="line-clamp-2 text-[13px] font-bold uppercase leading-snug tracking-[-0.01em] [font-family:var(--font-press-display),ui-sans-serif] transition-colors group-hover:text-[#FF5722]">
                 {item.title}
               </p>
-              <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#1A1A1A]/35">{item.source}</p>
+              <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#1A1A1A]/35">
+                {item.source}
+              </p>
             </Link>
           ))}
         </div>
