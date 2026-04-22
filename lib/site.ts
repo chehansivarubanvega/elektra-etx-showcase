@@ -13,3 +13,9 @@ export function getSiteUrlString(): string {
 export function getMetadataBaseUrl(): URL {
   return new URL(getSiteUrlString() + '/');
 }
+
+/** Absolute URL for a path (e.g. `/about`) — use for `metadata.alternates.canonical`. */
+export function getCanonicalUrl(path: string): string {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return new URL(p, getMetadataBaseUrl()).toString();
+}

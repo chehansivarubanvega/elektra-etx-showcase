@@ -4,7 +4,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {useGSAP} from "@gsap/react";
 import gsap from "gsap";
 import {ScrollTrigger} from "gsap/ScrollTrigger";
-import {ContactScene, type ContactPointerSample, type ContactSceneHandle} from "./ContactScene";
+import {ContactScene, type ContactPointerSample, type ContactSceneHandle} from "@/components/ContactScene";
 
 if (typeof globalThis.window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -27,7 +27,7 @@ type FormState = {name: string; organization: string; email: string; subject: st
 
 const INITIAL_FORM: FormState = {name: "", organization: "", email: "", subject: ""};
 
-export const ContactPage = () => {
+export const ContactPageClient = () => {
   /* ─── Pointer plumbing ───────────────────────────────────────────────── */
   const pointerRef = useRef<ContactPointerSample>({nx: 0, ny: 0, active: false});
   const sceneHandleRef = useRef<ContactSceneHandle>(null);
@@ -841,7 +841,7 @@ const BackgroundGrid = () => (
   />
 );
 
-/** Fixed full-screen SVG noise — matches the AboutPage film-stock tone. */
+/** Fixed full-screen SVG noise — matches the About page film-stock tone. */
 const GlobalGrain = () => (
   <div
     aria-hidden="true"
@@ -853,4 +853,4 @@ const GlobalGrain = () => (
   />
 );
 
-export default ContactPage;
+export default ContactPageClient;

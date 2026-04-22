@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * PreorderConfigurator — Brutalist HUD wrapped around the digital twin.
+ * Preorder page client — Brutalist HUD wrapped around the digital twin.
  *
  * Owns 100% of the wizard state and feeds it down to <ConfiguratorCanvas /> as
  * a plain `state` prop, which keeps the 3D scene a pure read-only consumer.
@@ -33,11 +33,11 @@ import type {
   ConfiguratorCanvasProps,
   ConfiguratorState,
   FocusTarget,
-} from "./ConfiguratorCanvas";
+} from "@/components/ConfiguratorCanvas";
 
 /** WebGL canvas is client-only — defer to keep the SSR pass cheap and clean. */
 const ConfiguratorCanvas = dynamic<ConfiguratorCanvasProps>(
-  () => import("./ConfiguratorCanvas").then((m) => m.ConfiguratorCanvas),
+  () => import("@/components/ConfiguratorCanvas").then((m) => m.ConfiguratorCanvas),
   {ssr: false},
 );
 
@@ -474,7 +474,7 @@ const MobileStepCard = ({
 /* Main component                                                      */
 /* ------------------------------------------------------------------ */
 
-export const PreorderConfigurator = () => {
+export const PreorderPageClient = () => {
   /* form */
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -1337,4 +1337,4 @@ export const PreorderConfigurator = () => {
   );
 };
 
-export default PreorderConfigurator;
+export default PreorderPageClient;

@@ -1272,7 +1272,7 @@ function VideoLightbox({
 }
 
 /** ── PAGE ─────────────────────────────────────────────────────────────── */
-export function ArchivePage() {
+export function ArchivePageClient() {
   const pageRef = useRef<HTMLDivElement>(null);
   const wipeRef = useRef<HTMLDivElement>(null);
 
@@ -1363,4 +1363,4 @@ export function ArchivePage() {
   );
 }
 
-export default ArchivePage;
+export default ArchivePageClient;

@@ -4,7 +4,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import React, { useEffect, useRef, useState } from "react";
-import { ETXHeroScene, type PointerSample } from "./ETXHeroScene";
+import { ETXHeroScene, type PointerSample } from "@/components/ETXHeroScene";
 
 if (typeof globalThis.window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger, useGSAP);
@@ -16,7 +16,7 @@ const FONT_SERIF = "var(--font-about-serif)";
 const ACCENT = "#FF5722";
 const ACCENT_DARK = "#FF6B00";
 
-export const AboutPage = () => {
+export const AboutPageClient = () => {
   /** Pointer sample shared with the 3D scene — written by mousemove, read in useFrame. */
   const pointerRef = useRef<PointerSample>({ nx: 0, ny: 0, active: false });
 
@@ -493,4 +493,4 @@ const GlobalGrain = () => (
   />
 );
 
-export default AboutPage;
+export default AboutPageClient;

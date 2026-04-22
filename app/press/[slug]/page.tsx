@@ -3,6 +3,7 @@ import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
 import {PressArticleView} from '@/components/press/PressArticleView';
 import {getArticleBySlug, getArticleSlugs, getNextArticles} from '@/lib/press/articles';
+import {getCanonicalUrl} from '@/lib/site';
 
 type PageProps = {
   params: Promise<{slug: string}>;
@@ -21,6 +22,7 @@ export async function generateMetadata({params}: PageProps): Promise<Metadata> {
   return {
     title: `${article.title} | Press`,
     description: article.summary,
+    alternates: {canonical: getCanonicalUrl(`/press/${slug}`)},
     openGraph: {
       title: article.title,
       description: article.summary,

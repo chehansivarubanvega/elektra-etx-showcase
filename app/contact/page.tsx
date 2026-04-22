@@ -1,6 +1,11 @@
-import React from "react";
-import {ContactPage} from "@/components/ContactPage";
+import type {Metadata} from 'next';
+import {ContactPageClient} from '@/components/contact/ContactPageClient';
+import {getCanonicalUrl} from '@/lib/site';
 
-export default function ContactRoutePage() {
-  return <ContactPage />;
+export const metadata: Metadata = {
+  alternates: {canonical: getCanonicalUrl('/contact')},
+};
+
+export default function ContactPage() {
+  return <ContactPageClient />;
 }
