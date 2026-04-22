@@ -61,9 +61,9 @@ export function EtxStudioRig({
 }: EtxStudioRigProps) {
   const { lowPower: fromBudget } = useWebGLBudget();
   const lowPower = lowPowerProp ?? fromBudget;
-  const shadowMap = lowPower ? 512 : 2048;
-  const contactRes = lowPower ? 256 : 1024;
-  const envIntensity = lowPower ? 0.52 : 0.64;
+  const shadowMap = lowPower ? 256 : 1024;
+  const contactRes = lowPower ? 128 : 512;
+  const envIntensity = lowPower ? 0.45 : 0.64;
 
   return (
     <>
@@ -106,7 +106,7 @@ export function EtxStudioRig({
             scale={contactShadowScale}
             blur={2.6}
             far={4.5}
-            resolution={1024}
+            resolution={contactRes}
             color="#000000"
           />
         )}

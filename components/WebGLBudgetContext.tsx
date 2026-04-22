@@ -39,13 +39,9 @@ export function WebGLBudgetProvider({children}: {children: React.ReactNode}) {
       const low =
         w <= 820 || isMobile || coarse || (typeof mem === "number" && mem > 0 && mem < 8);
       
-      // Force 1.0 on mobile to avoid GPU saturation.
-      // High-end desktop capped at 1.5 for performance.
-      const maxDpr = low ? 1.0 : 1.5;
-      
       setBudget({
         lowPower: low,
-        dpr: [1, maxDpr] as [number, number],
+        dpr: low ? [1, 1] : [1, 1.5],
         antialias: !low,
       });
     };
