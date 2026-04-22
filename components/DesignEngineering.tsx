@@ -40,9 +40,9 @@ const DesignEngineering = () => {
   });
 
   const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 120,
-    damping: 30,
-    mass: 0.2,
+    stiffness: 90,
+    damping: 32,
+    mass: 0.22,
     restDelta: 0.0001,
   });
 

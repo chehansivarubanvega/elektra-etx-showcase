@@ -93,9 +93,9 @@ const CargoSketchSection = () => {
    * low-end hardware. Feeds every visual transform in this section.
    */
   const smoothFrame = useSpring(scrollYProgress, {
-    stiffness: 180,
-    damping: 32,
-    mass: 0.4,
+    stiffness: 120,
+    damping: 34,
+    mass: 0.45,
   });
 
   // Ambient cues

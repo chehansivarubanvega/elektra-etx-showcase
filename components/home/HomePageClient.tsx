@@ -63,7 +63,14 @@ export function HomePageClient() {
       if (!containerRef.current) return;
 
       ScrollTrigger.config({ ignoreMobileResize: false });
-      gsap.ticker.lagSmoothing(500, 33);
+      /** Slightly more smoothing so scrub motion doesn’t stutter on trackpads / touch. */
+      gsap.ticker.lagSmoothing(720, 30);
+
+      /** S-curve 0..1: softer in/out at section boundaries (feeds 3D only; UI is timeline-driven). */
+      const sm = (t: number) => {
+        const c = Math.min(1, Math.max(0, t));
+        return c * c * (3 - 2 * c);
+      };
 
       const heroPinEnd = () =>
         typeof globalThis.window !== "undefined" &&
@@ -72,12 +79,14 @@ export function HomePageClient() {
           : "+=500%";
 
       const mainTl = gsap.timeline({
+        defaults: { ease: "power3.inOut" },
         scrollTrigger: {
           id: "etx-hero-pin",
           trigger: containerRef.current,
           start: "top top",
           end: heroPinEnd,
-          scrub: 0.6,
+          /** Higher = more inertia between scroll and timeline — calmer section flow. */
+          scrub: 0.8,
           pin: true,
           pinSpacing: true,
           anticipatePin: 1,
@@ -86,17 +95,18 @@ export function HomePageClient() {
           preventOverlaps: true,
           onUpdate: (self) => {
             const p = self.progress;
-            scrollData.current.hero = gsap.utils.clamp(0, 1, p * 5);
-            scrollData.current.metrics = gsap.utils.clamp(0, 1, (p - 0.2) * 5);
+            scrollData.current.hero = sm(gsap.utils.clamp(0, 1, p * 5));
+            scrollData.current.metrics = sm(gsap.utils.clamp(0, 1, (p - 0.2) * 5));
             const urbanLinear = (p - 0.4) * 5;
             const urbanSnapRamp = (p - 0.4) / 0.1;
-            scrollData.current.urban = gsap.utils.clamp(
-              0,
-              1,
-              Math.max(urbanLinear, urbanSnapRamp),
+            const urbanRaw = Math.max(urbanLinear, urbanSnapRamp);
+            scrollData.current.urban = sm(gsap.utils.clamp(0, 1, urbanRaw));
+            scrollData.current.charging = sm(
+              gsap.utils.clamp(0, 1, (p - 0.6) * 5),
             );
-            scrollData.current.charging = gsap.utils.clamp(0, 1, (p - 0.6) * 5);
-            scrollData.current.daylight = gsap.utils.clamp(0, 1, (p - 0.8) * 5);
+            scrollData.current.daylight = sm(
+              gsap.utils.clamp(0, 1, (p - 0.8) * 5),
+            );
           },
         },
       });
@@ -141,10 +151,14 @@ export function HomePageClient() {
 
       mainTl.to(".metrics-bg", { autoAlpha: 0.7, duration: 3.5 }, ">");
 
-      mainTl.to(".metrics-sidebar", { autoAlpha: 0, x: -50, duration: 1.2 }, "+=0.4");
+      mainTl.to(
+        ".metrics-sidebar",
+        { autoAlpha: 0, x: -50, duration: 1.35, ease: "expo.inOut" },
+        "+=0.5",
+      );
       mainTl.to(
         ".metrics-bg",
-        { autoAlpha: 0, scale: 1.04, duration: 1.8, ease: "power2.inOut", force3D: true },
+        { autoAlpha: 0, scale: 1.04, duration: 1.9, ease: "expo.inOut", force3D: true },
         "<",
       );
       mainTl.fromTo(
@@ -173,22 +187,27 @@ export function HomePageClient() {
         "<0.5",
       );
 
-      mainTl.to(".urban-sidebar", { autoAlpha: 0, x: 100, duration: 1 }, "+=1");
+      mainTl.to(".urban-sidebar", { autoAlpha: 0, x: 100, duration: 1.15, ease: "expo.inOut" }, "+=1.1");
       mainTl.to(
         ".urban-bg-image",
-        { autoAlpha: 0, scale: 1.04, yPercent: -3, duration: 1, ease: "power2.inOut", force3D: true },
+        { autoAlpha: 0, scale: 1.04, yPercent: -3, duration: 1.15, ease: "expo.inOut", force3D: true },
         "<",
       );
-      mainTl.to(".urban-bg-overlay, .urban-bg-glow", { autoAlpha: 0, duration: 1, ease: "power2.inOut" }, "<");
+      mainTl.to(
+        ".urban-bg-overlay, .urban-bg-glow",
+        { autoAlpha: 0, duration: 1.15, ease: "expo.inOut" },
+        "<",
+      );
 
-      mainTl.to({}, { duration: 2.2 });
+      /** Longer “breath” before daylight so the 3D beat lands before the white flood. */
+      mainTl.to({}, { duration: 2.5 });
 
       mainTl.to(
         ".daylight-flood",
         {
           autoAlpha: 1,
-          duration: 1.5,
-          ease: "power2.inOut",
+          duration: 1.65,
+          ease: "expo.inOut",
         },
         ">",
       );

@@ -53,3 +53,4 @@ The Next.js config no longer uses `output: 'standalone'` — Vercel builds the a
 - `npm run build` — production build
 - `npm run start` — run the production build locally
 - `npm run lint` — ESLint
+- `npm run model:export-gltf` — transcode textures in `public/models/optimized.glb` and export the ETX **multi-file** glTF bundle to `public/models/etx-exterior-panels/` (and refresh `optimized.glb`). Run this after you replace the source GLB or when the in-app model path in `lib/site-assets.ts` should match the built assets. Uses `@gltf-transform/cli` (see `package.json`).

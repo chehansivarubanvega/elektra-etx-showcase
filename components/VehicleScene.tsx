@@ -334,16 +334,21 @@ export const VehicleScene = ({
     const damp = (current: number, target: number, lambda: number) =>
       THREE.MathUtils.damp(current, target, lambda, dt);
 
-    smoothed.current.x = damp(smoothed.current.x, targetX, 9);
-    smoothed.current.y = damp(smoothed.current.y, targetY, 9);
-    smoothed.current.z = damp(smoothed.current.z, targetZ, 9);
-    smoothed.current.scale = damp(smoothed.current.scale, targetScale, 10);
+    /** Slightly lower λ = longer ease (less “whip” between section poses). */
+    const lp = 6.6;
+    const lr = 6.2;
+    const ls = 7.2;
+
+    smoothed.current.x = damp(smoothed.current.x, targetX, lp);
+    smoothed.current.y = damp(smoothed.current.y, targetY, lp);
+    smoothed.current.z = damp(smoothed.current.z, targetZ, lp);
+    smoothed.current.scale = damp(smoothed.current.scale, targetScale, ls);
     smoothed.current.rotationY = damp(
       smoothed.current.rotationY,
       targetRotationY,
-      9,
+      lr,
     );
-    smoothed.current.tilt = damp(smoothed.current.tilt, targetTilt, 9);
+    smoothed.current.tilt = damp(smoothed.current.tilt, targetTilt, lr);
     const opacityLambda =
       mobileUrban && smoothed.current.opacity < 0.92 ? 28 : 12;
     smoothed.current.opacity = damp(
